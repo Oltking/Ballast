@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -u
+echo "UNAME: $(uname -s -m)"
+echo "DISTRO: $( . /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}")"
+echo "USER: $(whoami)   HOME: $HOME"
+echo "--- toolchain ---"
+command -v rustc  >/dev/null && rustc --version  || echo "rust: MISSING"
+command -v cargo  >/dev/null && cargo --version  || echo "cargo: MISSING"
+command -v curl   >/dev/null && echo "curl: $(curl --version | head -1 | cut -d' ' -f1-2)" || echo "curl: MISSING"
+command -v gcc    >/dev/null && echo "gcc: present" || echo "gcc: MISSING"
+command -v docker >/dev/null && docker --version || echo "docker: MISSING"
+echo "--- risc0 ---"
+command -v rzup >/dev/null && rzup --version || echo "rzup: MISSING"
+command -v r0vm >/dev/null && r0vm --version || echo "r0vm: MISSING"
+command -v cargo-risczero >/dev/null && cargo risczero --version || echo "cargo-risczero: MISSING"
+echo "--- can WSL reach the project? ---"
+ls -d /mnt/c/Users/USER/oltking-project/stellar >/dev/null 2>&1 && echo "project visible at /mnt/c/.../stellar" || echo "project NOT visible"
