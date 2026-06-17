@@ -1,0 +1,10 @@
+[package]
+name = "ballast-core"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Shared Ballast audit logic: leaf hashing, Merkle sum tree, journal layout (SHA-256)"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"

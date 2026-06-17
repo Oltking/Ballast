@@ -1,0 +1,13 @@
+[package]
+name = "ballast-host"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Ballast prover host: builds the book, proves the audit, parses the journal"
+
+[dependencies]
+risc0-zkvm = "3.0"
+ballast-core = { path = "../core" }
+ballast-methods = { path = "../methods" }
+anyhow = "1"
+hex = "0.4"

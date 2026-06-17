@@ -1,0 +1,13 @@
+[package]
+name = "ballast-audit"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+# Own workspace so it is excluded from the host workspace (built for the
+# RISC-V guest target by risc0-build).
+[workspace]
+
+[dependencies]
+risc0-zkvm = { version = "3.0", default-features = false, features = ["std"] }
+ballast-core = { path = "../../core" }

@@ -1,0 +1,12 @@
+[package]
+name = "ballast-methods"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Build glue exposing the Ballast audit guest ELF + image id"
+
+[build-dependencies]
+risc0-build = "3.0"
+
+[package.metadata.risc0]
+methods = ["guest"]
