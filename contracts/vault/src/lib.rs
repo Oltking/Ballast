@@ -22,8 +22,8 @@
 //! stored at init so the storage layout is stable.
 
 use soroban_sdk::{
-    contract, contractevent, contracterror, contractimpl, contracttype, panic_with_error, token,
-    Address, BytesN, Env,
+    contract, contractclient, contractevent, contracterror, contractimpl, contracttype,
+    panic_with_error, token, Address, Bytes, BytesN, Env,
 };
 
 // ----------------------------------------------------------------------------
@@ -43,6 +43,20 @@ pub enum Error {
     Overflow = 5,
     /// `max_staleness_ledgers` or `min_ratio_bps` out of range at init.
     InvalidConfig = 6,
+    /// Journal byte length doesn't match the expected layout.
+    BadJournal = 7,
+    /// Journal `domain` != this vault (cross-contract proof reuse).
+    DomainMismatch = 8,
+    /// Journal `epoch` != stored epoch + 1 (stale/replayed proof).
+    EpochMismatch = 9,
+    /// Journal `reserves` != the vault's live on-chain reserve balance.
+    ReservesMismatch = 10,
+    /// Journal `net_custodied` != the vault's on-chain accounting.
+    NetCustodiedMismatch = 11,
+    /// Journal `ratio_bps` != the vault's configured minimum ratio.
+    RatioMismatch = 12,
+    /// The proof's verdict is INSOLVENT (or a predicate failed).
+    Insolvent = 13,
 }
 
 // ----------------------------------------------------------------------------
@@ -78,7 +92,42 @@ pub struct Config {
     pub max_staleness_ledgers: u32,
     /// Minimum over-collateralization ratio in basis points; 10_000 = 100% (F2, used from P3).
     pub min_ratio_bps: u32,
+    /// Domain-separation tag bound into every proof journal (set to this vault's
+    /// contract id). Prevents replaying a proof against a different vault.
+    pub domain: BytesN<32>,
 }
+
+// ----------------------------------------------------------------------------
+// RISC Zero verifier (router) client — matches NethermindEth/stellar-risc0-verifier.
+// `verify` traps if the seal is not a valid Groth16 proof for (image_id, journal).
+// ----------------------------------------------------------------------------
+
+#[contractclient(name = "VerifierClient")]
+pub trait RiscZeroVerifierRouter {
+    fn verify(env: Env, seal: Bytes, image_id: BytesN<32>, journal: BytesN<32>);
+}
+
+/// Decoded solvency journal (fixed 107-byte layout, big-endian), mirroring
+/// `ballast-core::pack_journal`:
+/// `root[32] | domain[32] | reserves(i128)[16] | net_custodied(i128)[16] |
+///  ratio_bps(u32)[4] | epoch(u32)[4] | reserves_checked | floor_checked | solvent`.
+#[contracttype]
+#[derive(Clone)]
+pub struct Attestation {
+    pub liabilities_root: BytesN<32>,
+    pub reserves: i128,
+    pub net_custodied: i128,
+    pub ratio_bps: u32,
+    pub epoch: u32,
+    /// Ledger sequence at which this attestation was recorded.
+    pub ledger: u32,
+    pub reserves_checked: bool,
+    pub floor_checked: bool,
+    pub solvent: bool,
+}
+
+/// Expected journal byte length (see `Attestation` layout).
+const JOURNAL_LEN: u32 = 32 + 32 + 16 + 16 + 4 + 4 + 1 + 1 + 1; // 107
 
 // ----------------------------------------------------------------------------
 // Events (sdk-26 `#[contractevent]`). `amount` is the flow; `net_custodied`
@@ -110,14 +159,25 @@ pub struct WithdrawOperator {
     pub net_custodied: i128,
 }
 
+#[contractevent]
+#[derive(Clone)]
+pub struct Attested {
+    pub epoch: u32,
+    pub ledger: u32,
+    pub solvent: bool,
+    pub ratio_bps: u32,
+}
+
 #[contracttype]
 pub enum DataKey {
     /// `Config`
     Config,
     /// `i128` — running Σ(deposits) − Σ(all outflows).
     NetCustodied,
-    /// `u32` — increments per accepted attestation (anti-replay); 0 until P3.
+    /// `u32` — increments per accepted attestation (anti-replay).
     Epoch,
+    /// `Attestation` — the most recent accepted attestation.
+    LatestAttestation,
 }
 
 // ----------------------------------------------------------------------------
@@ -183,6 +243,7 @@ impl VaultContract {
         mode: Mode,
         max_staleness_ledgers: u32,
         min_ratio_bps: u32,
+        domain: BytesN<32>,
     ) {
         if env.storage().instance().has(&DataKey::Config) {
             panic_with(&env, Error::AlreadyInitialized);
@@ -199,6 +260,7 @@ impl VaultContract {
             mode,
             max_staleness_ledgers,
             min_ratio_bps,
+            domain,
         };
         env.storage().instance().set(&DataKey::Config, &cfg);
         env.storage().instance().set(&DataKey::NetCustodied, &0i128);
@@ -301,12 +363,104 @@ impl VaultContract {
         .publish(&env);
     }
 
+    /// Verify a RISC Zero solvency proof and record the attestation.
+    ///
+    /// Flow: hash the journal → verify the Groth16 seal via the router against
+    /// the pinned `image_id` (traps on a bad proof) → parse the journal → bind
+    /// every public value to live chain state (domain, epoch, reserves,
+    /// net_custodied, ratio) → require SOLVENT → record + bump epoch.
+    ///
+    /// `L` (total liabilities) is never in the journal and is never learned here.
+    pub fn post_attestation(env: Env, journal: Bytes, seal: Bytes) {
+        let cfg = get_config(&env);
+        cfg.operator.require_auth();
+
+        // 1. Cryptographic verification: the seal must prove this exact journal
+        //    was produced by the pinned guest program. Traps on failure.
+        let journal_digest: BytesN<32> = env.crypto().sha256(&journal).to_bytes();
+        VerifierClient::new(&env, &cfg.verifier).verify(&seal, &cfg.image_id, &journal_digest);
+
+        // 2. Parse the journal (fixed layout).
+        if journal.len() != JOURNAL_LEN {
+            panic_with(&env, Error::BadJournal);
+        }
+        let liabilities_root = read_bytes32(&env, &journal, 0);
+        let domain = read_bytes32(&env, &journal, 32);
+        let reserves = read_i128(&journal, 64);
+        let nc = read_i128(&journal, 80);
+        let ratio_bps = read_u32(&journal, 96);
+        let j_epoch = read_u32(&journal, 100);
+        let reserves_checked = journal.get(104).unwrap_or(0) != 0;
+        let floor_checked = journal.get(105).unwrap_or(0) != 0;
+        let solvent = journal.get(106).unwrap_or(0) != 0;
+
+        // 3. Bind the proof's public inputs to live chain state.
+        if domain != cfg.domain {
+            panic_with(&env, Error::DomainMismatch);
+        }
+        let next_epoch = epoch(&env)
+            .checked_add(1)
+            .unwrap_or_else(|| panic_with(&env, Error::Overflow));
+        if j_epoch != next_epoch {
+            panic_with(&env, Error::EpochMismatch);
+        }
+        let live_reserves = token::TokenClient::new(&env, &cfg.reserve_token)
+            .balance(&env.current_contract_address());
+        if reserves != live_reserves {
+            panic_with(&env, Error::ReservesMismatch);
+        }
+        if nc != net_custodied(&env) {
+            panic_with(&env, Error::NetCustodiedMismatch);
+        }
+        if ratio_bps != cfg.min_ratio_bps {
+            panic_with(&env, Error::RatioMismatch);
+        }
+
+        // 4. Require a SOLVENT verdict. (P7/F5 will instead record INSOLVENT and
+        //    trigger wind-down; in P3 an insolvent proof is rejected.)
+        if !(solvent && reserves_checked && floor_checked) {
+            panic_with(&env, Error::Insolvent);
+        }
+
+        // 5. Record + bump epoch (anti-replay).
+        let ledger = env.ledger().sequence();
+        let attestation = Attestation {
+            liabilities_root,
+            reserves,
+            net_custodied: nc,
+            ratio_bps,
+            epoch: j_epoch,
+            ledger,
+            reserves_checked,
+            floor_checked,
+            solvent,
+        };
+        env.storage()
+            .instance()
+            .set(&DataKey::LatestAttestation, &attestation);
+        env.storage().instance().set(&DataKey::Epoch, &j_epoch);
+        bump_instance(&env);
+
+        Attested {
+            epoch: j_epoch,
+            ledger,
+            solvent,
+            ratio_bps,
+        }
+        .publish(&env);
+    }
+
     // ----- Views -----
 
     /// Live on-chain reserves: the vault's own balance of the reserve token.
     pub fn reserves(env: Env) -> i128 {
         let cfg = get_config(&env);
         token::TokenClient::new(&env, &cfg.reserve_token).balance(&env.current_contract_address())
+    }
+
+    /// The most recent accepted attestation, if any.
+    pub fn latest_attestation(env: Env) -> Option<Attestation> {
+        env.storage().instance().get(&DataKey::LatestAttestation)
     }
 
     pub fn net_custodied(env: Env) -> i128 {
@@ -326,6 +480,33 @@ fn require_positive(env: &Env, amount: i128) {
     if amount <= 0 {
         panic_with(env, Error::InvalidAmount);
     }
+}
+
+// --- fixed-layout journal readers (caller guarantees length == JOURNAL_LEN) ---
+
+fn read_bytes32(env: &Env, b: &Bytes, off: u32) -> BytesN<32> {
+    let mut a = [0u8; 32];
+    for (k, slot) in a.iter_mut().enumerate() {
+        *slot = b.get(off + k as u32).unwrap_or(0);
+    }
+    BytesN::from_array(env, &a)
+}
+
+fn read_i128(b: &Bytes, off: u32) -> i128 {
+    // 16 big-endian bytes; values are non-negative (zero-extended) by construction.
+    let mut v: i128 = 0;
+    for k in 0..16u32 {
+        v = (v << 8) | i128::from(b.get(off + k).unwrap_or(0));
+    }
+    v
+}
+
+fn read_u32(b: &Bytes, off: u32) -> u32 {
+    let mut v: u32 = 0;
+    for k in 0..4u32 {
+        v = (v << 8) | u32::from(b.get(off + k).unwrap_or(0));
+    }
+    v
 }
 
 #[cfg(test)]

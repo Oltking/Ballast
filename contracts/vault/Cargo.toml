@@ -15,3 +15,6 @@ soroban-sdk = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+# Reuse the guest's journal layout in tests so the contract parser and the
+# guest packer can never drift apart.
+ballast-core = { path = "../../guest/core" }

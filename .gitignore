@@ -31,6 +31,9 @@ app/build/
 research/github/
 research/_fetch.sh
 research/_index.tsv
+research/
+
+docs/
 
 # OS / editor
 .DS_Store
