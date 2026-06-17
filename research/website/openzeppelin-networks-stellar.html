@@ -1,0 +1,2950 @@
+SOURCE: https://www.openzeppelin.com/networks/stellar
+FETCHED: 2026-06-17T06:44:33Z
+VERBATIM — NOT SUMMARIZED
+
+<!doctype html><html lang="en"><head>
+    <meta charset="utf-8">
+    <title>Build Secure Smart Contracts on Stellar with OpenZeppelin</title>
+    
+    <link rel="shortcut icon" href="https://www.openzeppelin.com/hubfs/openzeppelin-favicon-2.png">   
+    <meta name="description" content="OpenZeppelin provides smart contract libraries, developer tools, and security audits to build secure, real-world applications on the Stellar network. | Smart Contracts Audit">
+    
+    
+    
+    
+    <script src="https://www.openzeppelin.com/hubfs/hub_generated/template_assets/1/179008243005/1777919000486/template_jquery.min.js"></script>
+    
+    
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+                                                          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+                                })(window,document,'script','dataLayer','GTM-W9X5Q6F');</script>
+    <!-- End Google Tag Manager -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    
+    <meta property="og:description" content="OpenZeppelin provides smart contract libraries, developer tools, and security audits to build secure, real-world applications on the Stellar network.">
+    <meta property="og:title" content="Build Secure Smart Contracts on Stellar with OpenZeppelin">
+    <meta name="twitter:description" content="OpenZeppelin provides smart contract libraries, developer tools, and security audits to build secure, real-world applications on the Stellar network.">
+    <meta name="twitter:title" content="Build Secure Smart Contracts on Stellar with OpenZeppelin">
+
+    
+
+    
+    <style>
+a.cta_button{-moz-box-sizing:content-box !important;-webkit-box-sizing:content-box !important;box-sizing:content-box !important;vertical-align:middle}.hs-breadcrumb-menu{list-style-type:none;margin:0px 0px 0px 0px;padding:0px 0px 0px 0px}.hs-breadcrumb-menu-item{float:left;padding:10px 0px 10px 10px}.hs-breadcrumb-menu-divider:before{content:'›';padding-left:10px}.hs-featured-image-link{border:0}.hs-featured-image{float:right;margin:0 0 20px 20px;max-width:50%}@media (max-width: 568px){.hs-featured-image{float:none;margin:0;width:100%;max-width:100%}}.hs-screen-reader-text{clip:rect(1px, 1px, 1px, 1px);height:1px;overflow:hidden;position:absolute !important;width:1px}
+</style>
+
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/template_assets/1/67472537945/1777919002536/template_main.min.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/template_assets/1/67472687930/1777919003983/template_theme-overrides.min.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/191486630025/1779484514097/module_Announcement_Banner_-_FOR_TESTING.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/175205469193/1781548471762/module_Navbar_-_Live.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/196671359850/1770068412523/module_NETWORKS_Subnavbar.min.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/196554394035/1764795281914/module_NETWORKS_Hero.min.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/198675291681/1770040684514/module_NETWORKS_Contracts_-_Stellar.min.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/198668066482/1769189681653/module_NETWORKS_Open_Source_Tools_-_Stellar.min.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/196580421441/1777932051160/module_NETWORKS_Professional_Services.min.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/196573640991/1778084812780/module_NETWORKS_Carousel.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/196584800856/1778080616344/module_NETWORKS_Explore_other_networks.min.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/196584740397/1772029680958/module_NETWORKS_Prefooter.min.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/175628308257/1779829002054/module_Footer_-_Live.min.css">
+<!-- Editor Styles -->
+<style id="hs_editor_style" type="text/css">
+.dnd_area-row-0-force-full-width-section > .row-fluid {
+  max-width: none !important;
+}
+.dnd_area-row-1-force-full-width-section > .row-fluid {
+  max-width: none !important;
+}
+.dnd_area-row-2-force-full-width-section > .row-fluid {
+  max-width: none !important;
+}
+.dnd_area-row-3-force-full-width-section > .row-fluid {
+  max-width: none !important;
+}
+.dnd_area-row-4-force-full-width-section > .row-fluid {
+  max-width: none !important;
+}
+.dnd_area-row-5-force-full-width-section > .row-fluid {
+  max-width: none !important;
+}
+.dnd_area-row-6-force-full-width-section > .row-fluid {
+  max-width: none !important;
+}
+.dnd_area-row-7-force-full-width-section > .row-fluid {
+  max-width: none !important;
+}
+/* HubSpot Styles (default) */
+.dnd_area-row-0-padding {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+.dnd_area-row-1-padding {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+.dnd_area-row-2-padding {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+.dnd_area-row-3-padding {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+.dnd_area-row-4-padding {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+.dnd_area-row-5-padding {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+.dnd_area-row-6-padding {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+.dnd_area-row-7-padding {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+</style>
+    
+
+    
+<!--  Added by GoogleAnalytics4 integration -->
+<script>
+var _hsp = window._hsp = window._hsp || [];
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+
+var useGoogleConsentModeV2 = true;
+var waitForUpdateMillis = 1000;
+
+
+if (!window._hsGoogleConsentRunOnce) {
+  window._hsGoogleConsentRunOnce = true;
+
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'analytics_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'wait_for_update': waitForUpdateMillis
+  });
+
+  if (useGoogleConsentModeV2) {
+    _hsp.push(['useGoogleConsentModeV2'])
+  } else {
+    _hsp.push(['addPrivacyConsentListener', function(consent){
+      var hasAnalyticsConsent = consent && (consent.allowed || (consent.categories && consent.categories.analytics));
+      var hasAdsConsent = consent && (consent.allowed || (consent.categories && consent.categories.advertisement));
+
+      gtag('consent', 'update', {
+        'ad_storage': hasAdsConsent ? 'granted' : 'denied',
+        'analytics_storage': hasAnalyticsConsent ? 'granted' : 'denied',
+        'ad_user_data': hasAdsConsent ? 'granted' : 'denied',
+        'ad_personalization': hasAdsConsent ? 'granted' : 'denied'
+      });
+    }]);
+  }
+}
+
+gtag('js', new Date());
+gtag('set', 'developer_id.dZTQ1Zm', true);
+gtag('config', 'G-1LER5JVNB5');
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1LER5JVNB5"></script>
+
+<!-- /Added by GoogleAnalytics4 integration -->
+
+    <link rel="canonical" href="https://www.openzeppelin.com/networks/stellar">
+
+
+
+<meta property="og:image" content="https://www.openzeppelin.com/hubfs/Networks%20stellar.jpg">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1343">
+
+<meta name="twitter:image" content="https://www.openzeppelin.com/hubfs/Networks%20stellar.jpg">
+
+
+<meta property="og:url" content="https://www.openzeppelin.com/networks/stellar">
+<meta name="twitter:card" content="summary_large_image">
+<meta http-equiv="content-language" content="en">
+
+
+
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/template_assets/1/175808129816/1777919006388/template_navbar-dark.min.css">
+<link rel="stylesheet" href="https://www.openzeppelin.com/hubfs/hub_generated/template_assets/1/175810518644/1777919002292/template_footer-dark.min.css">
+
+<style>
+  .revamp .body-wrapper .header {
+    background: var(--new-black);    
+  }
+  .revamp #hero .content {
+    max-width: 800px;
+  }
+  .revamp #hero h1 {
+    max-width: 900px;
+  }
+  #hero #text {
+    min-width: 750px;
+  }
+  .revamp #contracts .middle-copy .middle-item p.stat-desc {
+    max-width: 355px;
+  }
+  #hero #text .line:nth-child(3), #hero #text .line:nth-child(4), #hero #text .line:nth-child(5), #hero #text .line:nth-child(6), #hero #text .line:nth-child(7), #hero #text .line:nth-child(10), #hero #text .line:nth-child(11)  {
+    margin-bottom: 0;
+  }
+
+</style>
+
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1LER5JVNB5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-1LER5JVNB5');
+    </script>
+
+    <link rel="stylesheet" type="text/css" href="https://www.openzeppelin.com/hubfs/hub_generated/template_assets/1/132129336476/1777919006685/template_slick.min.css">
+
+
+    
+    <script>
+      window._hsp = window._hsp || [];
+
+      function loadHotjar() {
+        if (window.__hotjarLoaded) return;
+        window.__hotjarLoaded = true;
+
+        (function(h, o, t, j, a, r) {
+          h.hj = h.hj || function() { (h.hj.q = h.hj.q || []).push(arguments); };
+          h._hjSettings = { hjid: 3863160, hjsv: 6 };
+          a = o.getElementsByTagName('head')[0];
+          r = o.createElement('script');
+          r.async = 1;
+          r.src = t + h._hjSettings.hjid + j + h._hjSettings.hjsv;
+          a.appendChild(r);
+        })(window, document, 'https://static.hotjar.com/c/hotjar-', '.js?sv=');
+      }
+
+      _hsp.push(['addPrivacyConsentListener', function(consent) {
+        if (consent.categories && consent.categories.analytics) {
+          loadHotjar();
+        }
+      }]);
+
+      _hsp.push(['getPrivacyConsent', function(consent) {
+              if (consent.categories && consent.categories.analytics) {
+          loadHotjar();
+        }
+      }]);
+    </script>
+    
+  <meta name="generator" content="HubSpot"></head>
+  <body class="revamp">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W9X5Q6F" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <div class="body-wrapper   hs-content-id-198675399079 hs-site-page page  stellar">
+      
+      <div data-global-resource-path="oz_2022/templates/partials/header-EA-live.html"><header class="header">
+
+  
+
+
+  
+
+  <div class="container-fluid content-wrapper announcement debug">
+<div class="row-fluid-wrapper">
+<div class="row-fluid">
+<div class="span12 widget-span widget-type-cell " style="" data-widget-type="cell" data-x="0" data-w="12">
+
+</div><!--end widget-span -->
+</div>
+</div>
+</div>
+
+  
+ <div id="hs_cos_wrapper_module_176304067353718" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module">
+<div class="header__wrapper notification">
+  <div class="header__container mw-1390 content-wrapper notification-wrapper">
+    <div class="flex-col"><span>Introducing the <strong>OpenZeppelin Continuous Security Program</strong></span><span class="separator hidden-575">|</span> <span class="register"><a class="notif-link" href="https://www.openzeppelin.com/news/introducing-continuous-security-program">Read the Announcement</a></span></div>
+  </div>
+</div>
+</div> 
+  
+  
+  <div class="header__wrapper">
+    <div class="header__container mw-1390 content-wrapper">
+
+      
+
+      <div class="header__logo header__logo--main">
+         <a class="light-nav-brand main-brand" href="https://openzeppelin.com"><svg width="161" height="24" viewbox="0 0 161 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path class="text" d="M150.623 19.2842V8.67576H153.205V9.96652H153.351C153.789 9.17996 154.872 8.41357 156.433 8.41357C158.891 8.41357 160.39 10.0875 160.39 12.3464V19.2842H157.683V13.0321C157.683 11.7413 156.829 10.8741 155.58 10.8741C154.268 10.8741 153.33 11.8825 153.33 13.2136V19.2842H150.623Z" fill="#0a0a0a" /> <path class="text" d="M147.871 7.73191C146.892 7.73191 146.205 7.14703 146.205 6.19913C146.205 5.29157 146.892 4.68652 147.871 4.68652C148.85 4.68652 149.537 5.29157 149.537 6.19913C149.537 7.14703 148.85 7.73191 147.871 7.73191ZM146.517 19.2841V8.67569H149.225V19.2841H146.517Z" fill="#0a0a0a" /> <path class="text" d="M135.697 19.5464C132.469 19.5464 130.178 17.2069 130.178 14.0405C130.178 10.6926 132.489 8.41357 135.697 8.41357C139.216 8.41357 141.132 10.9346 141.132 13.9195V14.7464H132.802C132.885 16.3598 134.031 17.4489 135.78 17.4489C137.113 17.4489 138.133 16.8438 138.508 15.9766H141.028C140.487 18.1346 138.529 19.5464 135.697 19.5464ZM132.843 12.8909H138.55C138.425 11.459 137.279 10.5111 135.697 10.5111C134.176 10.5111 133.01 11.5598 132.843 12.8909Z" fill="#0a0a0a" /> <path class="text" d="M117.535 23.2377V8.67576H120.201V10.027H120.347C120.638 9.58332 121.638 8.41357 123.637 8.41357C126.699 8.41357 128.802 10.6321 128.802 13.9396C128.802 17.2472 126.719 19.5464 123.72 19.5464C121.784 19.5464 120.742 18.4976 120.388 17.9128H120.243V23.2377H117.535ZM123.116 17.1665C124.866 17.1665 126.053 15.8556 126.053 13.98C126.053 12.0438 124.866 10.7934 123.096 10.7934C121.305 10.7934 120.18 12.185 120.18 13.98C120.18 15.9564 121.43 17.1665 123.116 17.1665Z" fill="#0a0a0a" /> <path class="text" d="M98.0735 19.5464C94.8455 19.5464 92.5547 17.2069 92.5547 14.0405C92.5547 10.6926 94.8664 8.41357 98.0735 8.41357C101.593 8.41357 103.509 10.9346 103.509 13.9195V14.7464H95.1787C95.2621 16.3598 96.4075 17.4489 98.1568 17.4489C99.4897 17.4489 100.51 16.8438 100.885 15.9766H103.405C102.863 18.1346 100.906 19.5464 98.0735 19.5464ZM95.2204 12.8909H100.927C100.802 11.459 99.6563 10.5111 98.0735 10.5111C96.5533 10.5111 95.387 11.5598 95.2204 12.8909Z" fill="#0a0a0a" /> <path class="text" d="M80.1016 19.2841V16.8025L87.6822 7.23067V7.08469H80.3723V4.68652H91.1393V7.14725L83.5587 16.7191V16.8859H91.1809V19.2841H80.1016Z" fill="#0a0a0a" /> <path class="text" d="M68.9531 19.2842V8.67576H71.5355V9.96652H71.6813C72.1187 9.17996 73.2016 8.41357 74.7635 8.41357C77.221 8.41357 78.7205 10.0875 78.7205 12.3464V19.2842H76.0131V13.0321C76.0131 11.7413 75.1592 10.8741 73.9097 10.8741C72.5977 10.8741 71.6605 11.8825 71.6605 13.2136V19.2842H68.9531Z" fill="#0a0a0a" /> <path class="text" d="M62.1399 19.5464C58.9119 19.5464 56.6211 17.2069 56.6211 14.0405C56.6211 10.6926 58.9328 8.41357 62.1399 8.41357C65.6595 8.41357 67.5755 10.9346 67.5755 13.9195V14.7464H59.2452C59.3285 16.3598 60.4739 17.4489 62.2233 17.4489C63.5561 17.4489 64.5766 16.8438 64.9514 15.9766H67.4714C66.9299 18.1346 64.9723 19.5464 62.1399 19.5464ZM59.2868 12.8909H64.9931C64.8681 11.459 63.7227 10.5111 62.1399 10.5111C60.6197 10.5111 59.4534 11.5598 59.2868 12.8909Z" fill="#0a0a0a" /> <path class="text" d="M43.9805 23.2226V8.63871H46.6462V10.027H46.792C47.0835 9.58332 48.0832 8.41357 50.0824 8.41357C53.1439 8.41357 55.2473 10.6321 55.2473 13.9396C55.2473 17.2472 53.1647 19.5464 50.1658 19.5464C48.2289 19.5464 47.1877 18.4976 46.8336 17.9128H46.6878V23.2226H43.9805ZM49.5618 17.1665C51.3112 17.1665 52.4983 15.8556 52.4983 13.98C52.4983 12.0438 51.3112 10.7934 49.541 10.7934C47.75 10.7934 46.6254 12.185 46.6254 13.98C46.6254 15.9564 47.8749 17.1665 49.5618 17.1665Z" fill="#0a0a0a" /> <path class="text" d="M34.6217 19.5464C30.0464 19.5464 26.6797 16.3069 26.6797 11.9597C26.6797 7.65434 30.068 4.37305 34.6433 4.37305C39.2186 4.37305 42.6069 7.69614 42.6069 11.9597C42.6069 16.2651 39.197 19.5464 34.6217 19.5464ZM34.6433 16.8921C37.5352 16.8921 39.6071 14.8021 39.6071 11.9597C39.6071 9.15914 37.5352 7.02734 34.6433 7.02734C31.7298 7.02734 29.6579 9.15914 29.6579 11.9597C29.6579 14.8021 31.7298 16.8921 34.6433 16.8921Z" fill="#0a0a0a" /> <rect class="text" x="142.51" y="4.625" width="2.62657" height="14.6594" fill="#0a0a0a" /> <path class="text" d="M104.887 23.2377V8.67576H107.552V10.027H107.698C107.99 9.58332 108.989 8.41357 110.989 8.41357C114.05 8.41357 116.154 10.6321 116.154 13.9396C116.154 17.2472 114.071 19.5464 111.072 19.5464C109.135 19.5464 108.094 18.4976 107.74 17.9128H107.594V23.2377H104.887ZM110.468 17.1665C112.217 17.1665 113.405 15.8556 113.405 13.98C113.405 12.0438 112.217 10.7934 110.447 10.7934C108.656 10.7934 107.532 12.185 107.532 13.98C107.532 15.9564 108.781 17.1665 110.468 17.1665Z" fill="#0a0a0a" /> <path d="M0 23.2589C2.58163 18.9332 4.77534 15.3658 7.56356 10.4764C8.54845 8.82648 10.2503 7.80127 12.3512 7.80127H15.6523L6.43351 23.2589H0Z" fill="#2E99FF" /> <path d="M0.03125 0.740234H19.8394L16.4549 6.45503H0.03125V0.740234Z" fill="#4F56FA" /> <path d="M9.95129 19.6998C10.6962 18.4245 11.8935 17.6323 13.5706 17.6323L19.8413 17.6157V23.2593H7.82617C8.57842 22.0099 9.23162 20.9318 9.95129 19.6998Z" fill="#09C2FF" /> </svg></a>
+         <a class="light-nav-brand is-mobile" href="https://openzeppelin.com"><img src="https://www.openzeppelin.com/hubfs/oz-nav-mobile.svg" alt="OpenZeppelin" loading="eager" width="17" height="19"></a>
+        
+      </div>
+
+      
+
+      <div class="header__column">
+        <div id="hs_cos_wrapper_module_175139067533613" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module">
+
+
+
+
+
+
+<nav class="menu menu-desktop">
+  <div class="box-menu">
+    <ul class="box-menu-list">
+      <li class="item has-child developers">
+        <a class="products" href="#">Developers</a>
+        <div class="sub-nav developers">
+          <div class="dev-tab-bar">
+            <button class="dev-tab active" data-tab="products">Products</button>
+            <button class="dev-tab" data-tab="blockchains">Networks</button>
+          </div>
+          <div class="panel-track">
+            <div class="panel-slider">
+              <div class="panel-slot">
+                <div class="nav-flex-wrapper is-products">
+                  <div class="sub-nav-list">
+                    <div class="nav-col-title">Smart Contracts</div>
+                    <a id="contracts_library-navbar" href="https://www.openzeppelin.com/solidity-contracts" class="sub-nav-item bg-icon">
+                      <div class="nav-icon-wrapper">
+                        <img src="https://www.openzeppelin.com/hubfs/contracts%20libraries-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                      </div>
+                      <div class="sub-nav-item-content">
+                        <span class="sub-nav-item-title">Contracts Libraries</span>
+                        <p>The standard for smart contracts development</p>
+                      </div>
+                    </a>
+                    <a id="contracts_wizard-navbar" href="https://wizard.openzeppelin.com/" class="sub-nav-item bg-icon" target="_blank">
+                      <div class="nav-icon-wrapper">
+                        <img src="https://www.openzeppelin.com/hubfs/contracts%20wizard-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                      </div>
+                      <div class="sub-nav-item-content">
+                        <span class="sub-nav-item-title">Contracts Wizard</span>
+                        <p>Generate smart contracts interactively</p>
+                      </div>
+                    </a>
+                    <a id="contracts_mcp-navbar" href="https://mcp.openzeppelin.com/" class="sub-nav-item bg-icon" target="_blank">
+                      <div class="nav-icon-wrapper">
+                        <img src="https://www.openzeppelin.com/hubfs/mcp-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                      </div>
+                      <div class="sub-nav-item-content">
+                        <div class="flex-h"><span class="sub-nav-item-title">Contracts MCP</span></div>
+                        <p>Build secure smart contracts with AI</p>
+                      </div>
+                    </a>
+                    <a id="contracts_skills-navbar" href="https://github.com/OpenZeppelin/openzeppelin-skills" class="sub-nav-item bg-icon" target="_blank">
+                      <div class="nav-icon-wrapper">
+                        <img src="https://www.openzeppelin.com/hubfs/contract-skills-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                      </div>
+                      <div class="sub-nav-item-content">
+                        <div class="flex-h"><span class="sub-nav-item-title">Contracts Skills</span><span class="new-tag">New</span></div>
+                        <p>Equip AI agents with secure development skills</p>
+                      </div>
+                    </a>
+                    <a id="upgrades_plugin-navbar" href="https://docs.openzeppelin.com/upgrades-plugins/" class="sub-nav-item bg-icon" target="_blank">
+                      <div class="nav-icon-wrapper">
+                        <img src="https://www.openzeppelin.com/hubfs/upgrade%20plugins-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                      </div>
+                      <div class="sub-nav-item-content">
+                        <span class="sub-nav-item-title">Upgrades Plugins</span>
+                        <p>Deploy upgradeable contracts</p>
+                      </div>
+                    </a> 
+                  </div>
+                  <div class="sub-nav-list">
+                    <div class="nav-col-title">Open Source Tools</div>
+                    <a id="relayers-navbar" href="https://www.openzeppelin.com/open-source-stack#operate" class="sub-nav-item bg-icon">
+                      <div class="nav-icon-wrapper">
+                        <img src="https://www.openzeppelin.com/hubfs/relayer-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                      </div>
+                      <div class="sub-nav-item-content">
+                        <span class="sub-nav-item-title">Relayer</span>
+                        <p>Send onchain transactions</p>
+                      </div>
+                    </a>
+                    <a id="monitor-navbar" href="https://www.openzeppelin.com/open-source-stack#operate" class="sub-nav-item bg-icon">
+                      <div class="nav-icon-wrapper">
+                        <img src="https://www.openzeppelin.com/hubfs/monitor-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                      </div>
+                      <div class="sub-nav-item-content">
+                        <span class="sub-nav-item-title">Monitor</span>
+                        <p>Observe smart contract activity </p>
+                      </div>
+                    </a>
+                    <a id="contracts_ui-navbar" href="https://builder.openzeppelin.com/" class="sub-nav-item bg-icon" target="_blank">
+                      <div class="nav-icon-wrapper">
+                        <img src="https://www.openzeppelin.com/hubfs/ui%20builder-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                      </div>
+                      <div class="sub-nav-item-content">
+                        <div class="flex-h"><span class="sub-nav-item-title">UI Builder</span></div>
+                        <p>Spin up a UI for your contracts</p>
+                      </div>
+                    </a>
+                    <a id="safe_utils-navbar" href="https://safeutils.openzeppelin.com/" class="sub-nav-item bg-icon" target="_blank">
+                      <div class="nav-icon-wrapper">
+                        <img src="https://www.openzeppelin.com/hubfs/safe%20utils-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                      </div>
+                      <div class="sub-nav-item-content">
+                        <span class="sub-nav-item-title">Safe Utils</span>
+                        <p>Verify Safe transactions before signing</p>
+                      </div>
+                    </a>
+                    <a id="access_control-navbar" href="https://access-manager.openzeppelin.com/explorer/11155111" class="sub-nav-item bg-icon" target="_blank">
+                      <div class="nav-icon-wrapper">
+                        <img src="https://www.openzeppelin.com/hubfs/access%20control-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                      </div>
+                      <div class="sub-nav-item-content">
+                        <span class="sub-nav-item-title">Access Control</span>
+                        <p>Manage contract roles &amp; permissions</p>
+                      </div>
+                    </a>
+                  </div>
+                  <div class="sub-nav-list is-border-left pr-32 small-icons">
+                    <div class="top-col">
+                      <div class="nav-col-title">Resources</div>
+                      <a id="documentation-navbar" href="https://docs.openzeppelin.com/" class="sub-nav-item" target="_blank">
+                        <img src="https://www.openzeppelin.com/hubfs/docs-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Documentation</span>
+                        </div>
+                      </a>
+                      <a id="research-navbar" href="https://www.openzeppelin.com/research" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/research-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Research</span>
+                        </div>
+                      </a>
+
+                      <a id="ethernaut-navbar" href="https://ethernaut.openzeppelin.com/" class="sub-nav-item" target="_blank">
+                        <img src="https://www.openzeppelin.com/hubfs/ethernaut-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Ethernaut CTF</span>
+                        </div>
+                      </a>  
+                      <a id="forum-navbar" href="https://forum.openzeppelin.com/" class="sub-nav-item" target="_blank">
+                        <img src="https://www.openzeppelin.com/hubfs/forum-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Forum</span>
+                        </div>
+                      </a>
+                    </div>
+
+                  </div>
+                  <div class="bottom-row">
+                    <div class="sub-nav-list large">
+                      <a id="open_source_stack-navbar" href="https://www.openzeppelin.com/open-source-stack" class="sub-nav-item oss-icon">
+                        <div class="nav-icon-wrapper">
+                          <img src="https://www.openzeppelin.com/hubfs/oss-nav-icon-1.svg" role="presentation" loading="eager" width="36" height="36">
+                        </div>
+                        <span class="sub-nav-item-title">Explore the Open Source Stack <span class="hidden-arrow">→</span></span>
+                      </a>
+                    </div> 
+                  </div>
+                </div>
+              </div>
+              <div class="panel-slot">
+                <div class="nav-flex-wrapper is-blockchains">
+                  <div class="sub-nav-list is-blockchains">
+                    <div class="nav-col-title">Blockchain Networks</div>
+                    <div class="blockchain-col">
+                      <a id="network_arbitrum-navbar" href="https://www.openzeppelin.com/networks/arbitrum" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/arbitrum-nav.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Arbitrum</span>
+                        </div>
+                      </a>
+                      <a id="network_base-navbar" href="https://www.openzeppelin.com/networks/base" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/base-navv3.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Base</span>
+                        </div>
+                      </a>
+                      <a id="network_ethereum-navbar" href="https://www.openzeppelin.com/networks/ethereum" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/eth-nav.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Ethereum</span>
+                        </div>
+                      </a>
+                    </div>
+                    <div class="blockchain-col">
+                      <a id="network_linea-navbar" href="https://www.openzeppelin.com/networks/linea" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/linea-nav.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Linea</span>
+                        </div>
+                      </a>
+                      <a id="midnight-navbar" href="https://www.openzeppelin.com/networks/midnight" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/midnight-nav.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Midnight</span>
+                        </div>
+                      </a>
+                      <a id="network_op_mainnet-navbar" href="https://www.openzeppelin.com/networks/op-mainnet" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/op-mainnet-nav-3.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">OP Mainnet</span>
+                        </div>
+                      </a>
+                    </div>
+                    <div class="blockchain-col">
+                      
+                      <a id="starknet-navbar" href="https://www.openzeppelin.com/networks/starknet" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/starknet-nav.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Starknet</span>
+                        </div>
+                      </a>
+                      <a id="midnight-navbar" href="https://www.openzeppelin.com/networks/stellar" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/stellar-nav-1.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Stellar</span>
+                        </div>
+                      </a>
+                      <a id="midnight-navbar" href="/networks/sui" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/sui-nav.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Sui</span>
+                        </div>
+                      </a>
+
+                    </div>
+                    <div class="blockchain-col">
+                      <a id="zama-navbar" href="https://www.openzeppelin.com/networks/zama" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/zama-nav-1.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Zama</span>
+                        </div>
+                      </a>
+                      <a id="network_zksync-navbar" href="https://www.openzeppelin.com/networks/zksync" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/zksync-nav.svg" alt="" role="presentation" loading="eager" width="24" height="24">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">ZKsync</span>
+                        </div>
+                      </a>
+                    </div>
+
+                  </div>
+                  <div class="sub-nav-list is-border-left pr-32 small-icons">
+                    <div class="top-col">
+                      <div class="nav-col-title">Resources</div>
+                      <a id="documentation-navbar" href="https://docs.openzeppelin.com/" class="sub-nav-item" target="_blank">
+                        <img src="https://www.openzeppelin.com/hubfs/docs-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Documentation</span>
+                        </div>
+                      </a>
+                      <a id="research-navbar" href="https://www.openzeppelin.com/research" class="sub-nav-item">
+                        <img src="https://www.openzeppelin.com/hubfs/research-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Research</span>
+                        </div>
+                      </a>
+
+                      <a id="ethernaut-navbar" href="https://ethernaut.openzeppelin.com/" class="sub-nav-item" target="_blank">
+                        <img src="https://www.openzeppelin.com/hubfs/ethernaut-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Ethernaut CTF</span>
+                        </div>
+                      </a>  
+                      <a id="forum-navbar" href="https://forum.openzeppelin.com/" class="sub-nav-item" target="_blank">
+                        <img src="https://www.openzeppelin.com/hubfs/forum-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                        <div class="sub-nav-item-content">
+                          <span class="sub-nav-item-title">Forum</span>
+                        </div>
+                      </a></div>
+
+                  </div>
+                  <div class="bottom-row">
+                    <div class="sub-nav-list large">
+                      <a id="networks-navbar" href="https://www.openzeppelin.com/networks" class="sub-nav-item networks-icon">
+                        <div class="nav-icon-wrapper">
+                          <img src="https://www.openzeppelin.com/hubfs/networks-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                        </div>
+                        <span class="sub-nav-item-title">Explore all Networks <span class="hidden-arrow">→</span></span>
+                      </a>
+                    </div> 
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </li>
+      <li class="item services has-child">
+        <a class="services" href="#">Security Services</a>
+        <div class="sub-nav services">
+          <div class="nav-flex-wrapper">
+            <div class="sub-nav-list">
+              <div class="nav-col-title">Overview</div>
+              <a id="security_services-navbar" href="https://www.openzeppelin.com/security-services" class="sub-nav-item bg-icon">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/all-services-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                </div>
+                <div class="sub-nav-item-content">
+                  <span class="sub-nav-item-title">All Services</span>
+                </div>
+              </a>
+              <a id="continuous_security_program-navbar" href="https://www.openzeppelin.com/continuous-security-program" class="sub-nav-item bg-icon">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/csm-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                </div>
+                <div class="sub-nav-item-content">
+                  <span class="sub-nav-item-title">Continuous Security Program</span>
+                </div>
+              </a>
+              <div class="nav-col-title second">Security Lifecycle</div>
+              <div class="regular-links">
+                <a href="/security-services#architect">Architect</a>
+                <a href="/security-services#build">Build</a>
+                <a href="/security-services#secure">Secure</a>
+                <a href="/security-services#support">Support</a>
+              </div>
+            </div>
+            <div class="sub-nav-list related-content is-border-left">
+              <a href="www.openzeppelin.com/research#security-audits" class="nav-col-title">Featured Announcement</a>
+
+              <a class="related-content-wrapper" href="https://www.openzeppelin.com/news/introducing-continuous-security-program">
+                <div class="featured-image-wrapper">
+                  <img src="https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=442&amp;height=247&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png" alt="Featured Announcement" loading="lazy" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=221&amp;height=124&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=442&amp;height=247&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=663&amp;height=371&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=884&amp;height=494&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=1105&amp;height=618&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=1326&amp;height=741&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+
+                </div>
+
+                <div class="post-title">Introducing the OpenZeppelin Continuous Security Program </div>
+                <div class="post-title arrow">→</div>
+
+              </a>
+
+            </div>
+          </div>
+        </div> 
+      </li>
+      
+      <li class="item ecosystems">
+        <a class="ecosystems" href="https://www.openzeppelin.com/ecosystems">Ecosystems</a>
+      </li>
+      <li class="item institutions">
+        <a class="products" href="https://www.openzeppelin.com/financial-institutions">Financial Institutions</a>
+      </li>
+       
+      <li class="item has-child research-resources">
+        <a class="research-resources" href="#">Research</a>
+        <div class="sub-nav research-resources">
+          <div class="nav-flex-wrapper">
+            <div class="sub-nav-list small-icons">
+              <div class="nav-col-title">Insights &amp; Education</div>
+              <a id="research-navbar" href="https://www.openzeppelin.com/research" class="sub-nav-item">
+                <img src="https://www.openzeppelin.com/hubfs/research-nav-light.svg" role="presentation" loading="eager" width="36" height="36">
+                <div class="sub-nav-item-content">
+                  <span class="sub-nav-item-title">Research</span>
+                </div>
+              </a>
+              <a id="security_audits_research-navbar" href="https://www.openzeppelin.com/research#security-audits" class="sub-nav-item">
+                <img src="https://www.openzeppelin.com/hubfs/sa-nav-research.svg" role="presentation" loading="eager" width="36" height="36">
+                <div class="sub-nav-item-content">
+                  <span class="sub-nav-item-title">Security Audits</span>
+                </div>
+              </a>
+              <a id="customer_stories-navbar" href="https://www.openzeppelin.com/customer-stories" class="sub-nav-item">
+                <img src="https://www.openzeppelin.com/hubfs/customer%20stories-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                <div class="sub-nav-item-content">
+                  <span class="sub-nav-item-title">Customer Stories</span>
+                </div>
+              </a>
+              <a id="stats-navbar" href="https://www.openzeppelin.com/stats" class="sub-nav-item">
+                <img src="https://www.openzeppelin.com/hubfs/stats-small.svg" role="presentation" loading="eager" width="36" height="36">
+                <div class="sub-nav-item-content">
+                  <span class="sub-nav-item-title">Stats</span>
+                </div>
+              </a>
+              <a id="why_openzeppelin-navbar" href="https://www.openzeppelin.com/why-openzeppelin" class="sub-nav-item">
+                <img src="https://www.openzeppelin.com/hubfs/why-oz-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                <div class="sub-nav-item-content">
+                  <span class="sub-nav-item-title">Why OpenZeppelin</span>
+                </div>
+              </a>
+            </div>
+            <div class="sub-nav-list is-border-left">
+              
+              <a href="https://www.openzeppelin.com/news/lessons-from-kelpdao-hack" class="nav-col-title">Featured Research</a>
+
+              <a class="related-content-wrapper" href="https://www.openzeppelin.com/news/lessons-from-kelpdao-hack">
+                <div class="featured-image-wrapper">
+                  
+                  <img src="https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=442&amp;height=247&amp;name=smart-4.png" alt="$292 Million Lost, Zero Bugs Found: Lessons From the rsETH Bridge Exploit" loading="lazy" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=221&amp;height=124&amp;name=smart-4.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=442&amp;height=247&amp;name=smart-4.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=663&amp;height=371&amp;name=smart-4.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=884&amp;height=494&amp;name=smart-4.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=1105&amp;height=618&amp;name=smart-4.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=1326&amp;height=741&amp;name=smart-4.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+                  
+
+                </div>
+
+                <div class="post-title">$292 Million Lost, Zero Bugs Found: Lessons From the rsETH Bridge Exploit</div>
+                <div class="post-title arrow">→</div>
+
+              </a>
+              
+            </div>
+
+
+          </div>
+        </div>
+      </li>
+      <li class="item has-child company">
+        <a class="research-resources" href="#">Company</a>
+        <div class="sub-nav research-resources">
+          <div class="nav-flex-wrapper">
+            <div class="sub-nav-list small-icons no-pl">
+              <div class="top-col"><div class="nav-col-title">Resources</div>
+                <a id="about-navbar" href="https://www.openzeppelin.com/about-us" class="sub-nav-item">
+                  <img src="https://www.openzeppelin.com/hubfs/about-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                  <div class="sub-nav-item-content">
+                    <span class="sub-nav-item-title">About Us</span>
+                  </div>
+                </a>  
+                <a id="news-navbar" href="https://www.openzeppelin.com/news" class="sub-nav-item">
+                  <img src="https://www.openzeppelin.com/hubfs/news-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                  <div class="sub-nav-item-content">
+                    <span class="sub-nav-item-title">News</span>
+                  </div>
+                </a>
+                <a id="careers-navbar" href="https://www.openzeppelin.com/careers" class="sub-nav-item">
+                  <img src="https://www.openzeppelin.com/hubfs/careers-nav-light.svg" alt="" role="presentation" loading="eager" width="36" height="36">
+                  <div class="sub-nav-item-content">
+                    <span class="sub-nav-item-title">Careers</span>
+                  </div>
+                </a>
+                <a id="why_openzeppelin-navbar" href="https://www.openzeppelin.com/why-openzeppelin" class="sub-nav-item">
+                  <img src="https://www.openzeppelin.com/hubfs/why-oz-nav-icon.svg" role="presentation" loading="eager" width="36" height="36">
+                  <div class="sub-nav-item-content">
+                    <span class="sub-nav-item-title">Why OpenZeppelin</span>
+                  </div>
+                </a>
+              </div>
+              
+
+            </div>
+            <div class="sub-nav-list is-border-left ml-0 is-news">
+
+              
+              <a href="https://www.openzeppelin.com/news/openzeppelin-to-accelerate-secure-development-for-institutions-building-on-canton" class="nav-col-title">Featured News</a>
+
+              <a class="related-content-wrapper" href="https://www.openzeppelin.com/news/openzeppelin-to-accelerate-secure-development-for-institutions-building-on-canton">
+                <div class="featured-image-wrapper">
+                  
+                  <img src="https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=442&amp;height=247&amp;name=card_canton_OUT.png" alt="OpenZeppelin to Accelerate Secure Development for Institutions Building on Canton" loading="lazy" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=221&amp;height=124&amp;name=card_canton_OUT.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=442&amp;height=247&amp;name=card_canton_OUT.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=663&amp;height=371&amp;name=card_canton_OUT.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=884&amp;height=494&amp;name=card_canton_OUT.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=1105&amp;height=618&amp;name=card_canton_OUT.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=1326&amp;height=741&amp;name=card_canton_OUT.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+                  
+
+                </div>
+
+                <div class="post-title">OpenZeppelin to Accelerate Secure Development for Institutions Building on Canton</div>
+                <div class="post-title arrow">→</div>
+
+              </a>
+              
+            </div>
+
+
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+  <div class="nav-buttons">
+    <a id="login-navbar" class="login-button" href="https://defender.openzeppelin.com/v2/#/auth/sign-in">Login</a>
+    <a id="talk_to_an_expert-navbar" class="button-new white" href="https://www.openzeppelin.com/request?id=talk_to_an_expert-navbar">Talk to an Expert</a>
+    <a id="start_building-navbar" class="button-new" href="https://www.openzeppelin.com/open-source-stack#build">Start Building</a>
+  </div>
+</nav>
+
+
+
+<nav id="menu-mobile" class="menu menu-mobile">
+  <div class="h-icon">
+    <div class="h-icon-cont">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </div>
+  <ul class="p-main-nav-mobile-list">
+    <div class="submenus-wrapper">
+      <div class="p-main-submenu developers">
+        <div>
+          <div class="back-button">Developers</div>
+          <div class="dev-tab-bar is-mobile">
+            <button class="dev-tab active" data-tab="products">Products</button>
+            <button class="dev-tab" data-tab="blockchains">Blockchains</button>
+          </div>
+          <div class="panel-mobile is-products is-active">
+            <li class="p-main-submenu-item subtitle first">Overview</li>
+            <li class="p-main-submenu-item ">
+              <a id="open_source_stack-navbar" href="https://www.openzeppelin.com/open-source-stack">
+                <div class="nav-icon-wrapper no-bg">
+                  <img src="https://www.openzeppelin.com/hubfs/oss-mobile-icon.svg" role="presentation" loading="eager" width="33" height="33">
+                </div>Explore the Open Source Stack</a>
+            </li>
+            <li class="p-main-submenu-item subtitle">Smart Contracts</li>
+            <li class="p-main-submenu-item ">
+              <a id="contracts_library-navbar" href="https://www.openzeppelin.com/solidity-contracts">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/Contracts%20Library-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Contracts Libraries</a>
+            </li>
+            <li class="p-main-submenu-item ">
+              <a id="contracts_wizard-navbar" href="https://wizard.openzeppelin.com/" target="_blank">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/contracts-wizard-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Contracts Wizard</a>
+            </li>
+            <li class="p-main-submenu-item ">
+              <a id="contracts_mcp-navbar" href="https://mcp.openzeppelin.com/" target="_blank">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/contracts-mcp-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Contracts MCP</a>
+            </li>
+            <li class="p-main-submenu-item ">
+              <a id="contracts_mcp-navbar" href="https://github.com/OpenZeppelin/openzeppelin-skills/" target="_blank">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/contract-skills-nav-icon-mob.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Contracts Skills<span class="new-tag">New</span></a>
+            </li>
+            <li class="p-main-submenu-item ">
+              <a id="upgrades_plugin-navbar" href="https://docs.openzeppelin.com/upgrades-plugins/" target="_blank">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/contracts-upgrades-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Upgrades Plugins</a>
+            </li>
+
+            <li class="p-main-submenu-item subtitle">Open Source Tools</li>
+            <li class="p-main-submenu-item ">
+              <a id="relayers-navbar" href="https://www.openzeppelin.com/open-source-stack#operate">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/relayers-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Relayer</a>
+            </li>
+            <li class="p-main-submenu-item ">
+              <a id="monitor-navbar" href="https://www.openzeppelin.com/open-source-stack#operate">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/monitor-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Monitor</a>
+            </li>
+            <li class="p-main-submenu-item ">
+              <a id="contracts_ui-navbar" href="https://builder.openzeppelin.com/" target="_blank">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/transaction-proposal-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>UI Builder</a>
+            </li>
+            <li class="p-main-submenu-item ">
+              <a id="safe_utils-navbar" href="https://safeutils.openzeppelin.com/" target="_blank">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/safe%20utils-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Safe Utils</a>
+            </li>
+            <li class="p-main-submenu-item ">
+              <a id="access_control-navbar" href="https://access-manager.openzeppelin.com/explorer/11155111" target="_blank">
+                <div class="nav-icon-wrapper">
+                  <img src="https://www.openzeppelin.com/hubfs/access-control-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Access Control</a>
+            </li>
+            <li class="p-main-submenu-item subtitle p-10">Resources</li>
+            <li class="p-main-submenu-item gap-8">
+              <a id="documentation-navbar" href="https://docs.openzeppelin.com/" target="_blank">
+                <div class="nav-icon-wrapper no-bg">
+                  <img src="https://www.openzeppelin.com/hubfs/docs-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Documentation</a>
+            </li>
+            <li class="p-main-submenu-item gap-8">
+              <a id="research-navbar" href="https://www.openzeppelin.com/research">
+                <div class="nav-icon-wrapper no-bg">
+                  <img src="https://www.openzeppelin.com/hubfs/research-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Research</a>
+            </li>
+
+            <li class="p-main-submenu-item gap-8">
+              <a id="ethernaut-navbar" href="https://ethernaut.openzeppelin.com/" target="_blank">
+                <div class="nav-icon-wrapper no-bg">
+                  <img src="https://www.openzeppelin.com/hubfs/etherenaut-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Ethernaut CTF</a>
+            </li>
+            <li class="p-main-submenu-item gap-8">
+              <a id="forum-navbar" href="https://forum.openzeppelin.com/" target="_blank">
+                <div class="nav-icon-wrapper no-bg">
+                  <img src="https://www.openzeppelin.com/hubfs/forum-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Forum</a>
+            </li>
+            
+          </div>
+          <div class="panel-mobile is-blockchains">
+            <li class="p-main-submenu-item subtitle first">Overview</li>
+            <li class="p-main-submenu-item ">
+              <a id="networks-navbar-mobile" href="https://www.openzeppelin.com/networks">
+                <div class="nav-icon-wrapper no-bg">
+                  <img src="https://www.openzeppelin.com/hubfs/networks-mobile-icon.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Explore all Networks</a>
+            </li>
+            <li class="p-main-submenu-item subtitle">Networks</li>
+
+            <div class="blockchains-wrapper">
+
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_arbitrum-navbar" href="https://www.openzeppelin.com/networks/arbitrum">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/Arbitrum-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>Arbitrum</a>
+              </li>
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_base-navbar" href="https://www.openzeppelin.com/networks/base">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/Base-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>Base</a>
+              </li>
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_ethereum-navbar" href="https://www.openzeppelin.com/networks/ethereum">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/Ethernaut-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>Ethereum</a>
+              </li>
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_linea-navbar" href="https://www.openzeppelin.com/networks/linea">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/Linea-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>Linea</a>
+              </li>
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_midnight-navbar" href="https://www.openzeppelin.com/networks/midnight">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/midnight-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>Midnight</a>
+              </li>
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_op-mainnet-navbar" href="https://www.openzeppelin.com/networks/op-mainnet">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/Op%20Mainnet-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>OP Mainnet</a>
+              </li>
+              
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_starknet-navbar" href="https://www.openzeppelin.com/networks/starknet">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/starknet-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>Starknet</a>
+              </li>
+
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_stellar-navbar" href="https://www.openzeppelin.com/networks/stellar">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/stellar-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>Stellar</a>
+              </li>
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_sui-navbar" href="/networks/sui">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/sui-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>Sui</a>
+              </li>
+
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_zama-navbar" href="https://www.openzeppelin.com/networks/zama">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/zama-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>Zama</a>
+              </li>
+
+              <li class="p-main-submenu-item is-blockchain">
+                <a id="network_zksync-navbar" href="https://www.openzeppelin.com/networks/zksync">
+                  <div class="nav-icon-wrapper no-bg">
+                    <img src="https://www.openzeppelin.com/hubfs/ZKsync-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+                  </div>ZKsync</a>
+              </li>
+            </div>
+            <li class="p-main-submenu-item subtitle p-10">Resources</li>
+            <li class="p-main-submenu-item gap-8">
+              <a id="documentation-navbar" href="https://docs.openzeppelin.com/" target="_blank">
+                <div class="nav-icon-wrapper no-bg">
+                  <img src="https://www.openzeppelin.com/hubfs/docs-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Documentation</a>
+            </li>
+            <li class="p-main-submenu-item gap-8">
+              <a id="research-navbar" href="https://www.openzeppelin.com/research">
+                <div class="nav-icon-wrapper no-bg">
+                  <img src="https://www.openzeppelin.com/hubfs/research-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Research</a>
+            </li>
+
+            <li class="p-main-submenu-item gap-8">
+              <a id="ethernaut-navbar" href="https://ethernaut.openzeppelin.com/" target="_blank">
+                <div class="nav-icon-wrapper no-bg">
+                  <img src="https://www.openzeppelin.com/hubfs/etherenaut-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Ethernaut CTF</a>
+            </li>
+            <li class="p-main-submenu-item gap-8">
+              <a id="forum-navbar" href="https://forum.openzeppelin.com/" target="_blank">
+                <div class="nav-icon-wrapper no-bg">
+                  <img src="https://www.openzeppelin.com/hubfs/forum-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+                </div>Forum</a>
+            </li>
+            
+            
+           
+          </div>
+
+
+        </div>
+
+      </div>
+      <div class="p-main-submenu services">
+        <div>
+          <div class="back-button">Security Services</div>
+          <li class="p-main-submenu-item subtitle first">Overview</li>
+          <li class="p-main-submenu-item ">
+            <a id="security_services-navbar" href="https://www.openzeppelin.com/security-services">
+              <div class="nav-icon-wrapper">
+                <img src="https://www.openzeppelin.com/hubfs/all-services-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>All Services</a>
+
+          </li>
+          <li class="p-main-submenu-item ">
+            <a id="continuous_security_program-navbar" href="https://www.openzeppelin.com/continuous-security-program">
+              <div class="nav-icon-wrapper">
+                <img src="https://www.openzeppelin.com/hubfs/csm-nav-icon-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>Continuous Security Program</a>
+
+          </li>
+          <li class="p-main-submenu-item subtitle">Security Lifecycle</li>
+        <li class="p-main-submenu-item gap-8">
+            <a id="research-navbar" href="/security-services#architect">
+              Architect</a>
+          </li>
+            <li class="p-main-submenu-item gap-8">
+            <a id="research-navbar" href="/security-services#build">
+              Build</a>
+          </li>
+            <li class="p-main-submenu-item gap-8">
+            <a id="research-navbar" href="/security-services#secure">
+              Secure</a>
+          </li>
+            <li class="p-main-submenu-item gap-8">
+            <a id="research-navbar" href="/security-services#support">
+              Support</a>
+          </li>
+        
+          
+          <li class="p-main-submenu-item subtitle">Featured Announcement</li>
+          <a class="related-content-wrapper mobile" href="https://www.openzeppelin.com/news/introducing-continuous-security-program">
+            <div class="featured-image-wrapper">
+              <img src="https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=442&amp;height=247&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png" alt="Introducing the OpenZeppelin Continuous Security Program" loading="lazy" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=221&amp;height=124&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=442&amp;height=247&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=663&amp;height=371&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=884&amp;height=494&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=1105&amp;height=618&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/OpenZeppelin%20Continuous%20Security%20Program.png?width=1326&amp;height=741&amp;name=OpenZeppelin%20Continuous%20Security%20Program.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            </div>
+            <div class="post-title">Introducing the OpenZeppelin Continuous Security Program  <br>→</div>
+
+          </a>
+        </div>
+
+      </div>
+      
+      
+      <div class="p-main-submenu research">
+        <div>
+          <div class="back-button">Research</div>
+          <li class="p-main-submenu-item subtitle first p-10">Insights &amp; Education</li>
+          <li class="p-main-submenu-item gap-8">
+            <a id="research-navbar" href="https://www.openzeppelin.com/research">
+              <div class="nav-icon-wrapper no-bg">
+                <img src="https://www.openzeppelin.com/hubfs/research-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>Research</a>
+          </li>
+          <li class="p-main-submenu-item gap-8">
+            <a id="research_security_audits-navbar" href="https://www.openzeppelin.com/research#security-audits">
+              <div class="nav-icon-wrapper no-bg">
+                <img src="https://www.openzeppelin.com/hubfs/sa-nav-research-mobile.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>Security Audits</a>
+          </li>
+
+          <li class="p-main-submenu-item gap-8">
+            <a id="customer_stories-navbar" href="https://www.openzeppelin.com/customer-stories">
+              <div class="nav-icon-wrapper no-bg">
+                <img src="https://www.openzeppelin.com/hubfs/customer-stories-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>Customer Stories</a>
+          </li>
+          <li class="p-main-submenu-item gap-8">
+            <a id="stats-navbar" href="https://www.openzeppelin.com/stats">
+              <div class="nav-icon-wrapper no-bg">
+                <img src="https://www.openzeppelin.com/hubfs/stats-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>Stats</a>
+          </li> 
+          <li class="p-main-submenu-item gap-8">
+            <a id="why_openzeppelin-navbar" href="https://www.openzeppelin.com/why-openzeppelin">
+              <div class="nav-icon-wrapper no-bg">
+                <img src="https://www.openzeppelin.com/hubfs/why-oz-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>Why OpenZeppelin</a>
+          </li>
+          <li class="p-main-submenu-item subtitle">Featured Research</li>
+          
+          <a class="related-content-wrapper mobile" href="https://www.openzeppelin.com/news/lessons-from-kelpdao-hack">
+            <div class="featured-image-wrapper">
+              
+              <img src="https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=442&amp;height=247&amp;name=smart-4.png" alt="$292 Million Lost, Zero Bugs Found: Lessons From the rsETH Bridge Exploit" loading="lazy" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=221&amp;height=124&amp;name=smart-4.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=442&amp;height=247&amp;name=smart-4.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=663&amp;height=371&amp;name=smart-4.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=884&amp;height=494&amp;name=smart-4.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=1105&amp;height=618&amp;name=smart-4.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/smart-4.png?width=1326&amp;height=741&amp;name=smart-4.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+              
+
+            </div>
+
+            <div class="post-title">$292 Million Lost, Zero Bugs Found: Lessons From the rsETH Bridge Exploit <br>→</div>
+
+          </a>
+          
+        </div>
+      </div>
+      <div class="p-main-submenu company">
+        <div>
+          <div class="back-button">Company</div>
+          <li class="p-main-submenu-item subtitle first p-10">Resources</li>
+          <li class="p-main-submenu-item gap-8">
+            <a id="about-navbar" href="https://www.openzeppelin.com/about-us">
+              <div class="nav-icon-wrapper no-bg">
+                <img src="https://www.openzeppelin.com/hubfs/about-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>About Us</a>
+          </li>
+          <li class="p-main-submenu-item gap-8">
+            <a id="news-navbar" href="https://www.openzeppelin.com/news">
+              <div class="nav-icon-wrapper no-bg">
+                <img src="https://www.openzeppelin.com/hubfs/news-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>News</a>
+          </li>
+
+          <li class="p-main-submenu-item gap-8">
+            <a id="careers-navbar" href="https://www.openzeppelin.com/careers">
+              <div class="nav-icon-wrapper no-bg">
+                <img src="https://www.openzeppelin.com/hubfs/careers-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>Careers</a>
+          </li>
+          <li class="p-main-submenu-item gap-8">
+            <a id="why_openzeppelin-navbar" href="https://www.openzeppelin.com/why-openzeppelin">
+              <div class="nav-icon-wrapper no-bg">
+                <img src="https://www.openzeppelin.com/hubfs/why-oz-nav-icon-mobile2.svg" role="presentation" loading="eager" width="32" height="32">
+              </div>Why OpenZeppelin</a>
+          </li>
+          <li class="p-main-submenu-item subtitle">Featured News</li>
+          
+          <a class="related-content-wrapper mobile" href="https://www.openzeppelin.com/news/openzeppelin-to-accelerate-secure-development-for-institutions-building-on-canton">
+            <div class="featured-image-wrapper">
+              
+              <img src="https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=442&amp;height=247&amp;name=card_canton_OUT.png" alt="OpenZeppelin to Accelerate Secure Development for Institutions Building on Canton" loading="lazy" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=221&amp;height=124&amp;name=card_canton_OUT.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=442&amp;height=247&amp;name=card_canton_OUT.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=663&amp;height=371&amp;name=card_canton_OUT.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=884&amp;height=494&amp;name=card_canton_OUT.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=1105&amp;height=618&amp;name=card_canton_OUT.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/card_canton_OUT.png?width=1326&amp;height=741&amp;name=card_canton_OUT.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+              
+
+            </div>
+
+            <div class="post-title">OpenZeppelin to Accelerate Secure Development for Institutions Building on Canton <br>→</div>
+
+          </a>
+          
+        </div>
+      </div>
+    </div>
+    <div class="main-menu-wrapper">
+      <div class="main-items">
+        <li class="p-main-nav-item developers">
+          <a href="#">Developers</a>
+
+        </li>
+        <li class="p-main-nav-item services">
+          <a href="#">Security Services</a>
+
+        </li>
+        <li class="p-main-nav-item no-arrow">
+          <a href="https://www.openzeppelin.com/ecosystems">Ecosystems</a>
+
+        </li>
+        <li class="p-main-nav-item no-arrow">
+          <a href="https://www.openzeppelin.com/financial-institutions">Financial Institutions</a>
+        </li>
+        <li class="p-main-nav-item research">
+          <a href="#">Research</a>
+
+        </li>
+        <li class="p-main-nav-item company">
+          <a href="#">Company</a>
+
+        </li>
+      </div>
+
+      <div class="flex is-ac is-buttons">
+        <a id="talk_to_an_expert-navbar" class="button-new white" href="https://www.openzeppelin.com/request?id=talk_to_an_expert-navbar">Talk to an Expert</a>
+        <a id="start_building-navbar" class="button-new" href="https://www.openzeppelin.com/open-source-stack#build">Start Building</a>
+      </div>
+    </div>
+  </ul>
+</nav></div>
+      </div>
+    </div>
+  </div>
+
+  
+
+  <div class="container-fluid content-wrapper">
+<div class="row-fluid-wrapper">
+<div class="row-fluid">
+<div class="span12 widget-span widget-type-cell " style="" data-widget-type="cell" data-x="0" data-w="12">
+
+</div><!--end widget-span -->
+</div>
+</div>
+</div>
+
+</header></div>
+      
+
+      
+
+      <main id="main-content" class="body-container-wrapper">
+        
+
+<div class="oz-site-wrapper">
+  
+
+  <div class="container-fluid body-container body-container--home">
+<div class="row-fluid-wrapper">
+<div class="row-fluid">
+<div class="span12 widget-span widget-type-cell " style="" data-widget-type="cell" data-x="0" data-w="12">
+
+<div class="row-fluid-wrapper row-depth-1 row-number-1 dnd_area-row-0-force-full-width-section dnd-section dnd_area-row-0-padding">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-cell dnd-column" style="" data-widget-type="cell" data-x="0" data-w="12">
+
+<div class="row-fluid-wrapper row-depth-1 row-number-2 dnd-row">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-custom_widget dnd-module" style="" data-widget-type="custom_widget" data-x="0" data-w="12">
+<div id="hs_cos_wrapper_widget_1758889073083" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module"><section id="sub-navigation">
+  <div class="container-nav">
+    <div class="sub-nav">
+      <div class="flex-col main-nav gap-50">
+        <a class="main-link-subnavbar" href="#">
+          <div class="iso-wrapper">
+            <img class="iso-logo is-hidden" src="https://www.openzeppelin.com/hubfs/icon-oz-dark.svg" alt="OpenZeppelin">
+          </div>
+          Networks <span class="hidden-landing" style="display: contents;">Supported</span></a>
+      </div>
+      <div class="sub-links">
+        <a class="op-50" href="https://forum.openzeppelin.com/" target="_blank">Forum</a>
+        <a class="op-50" href="https://docs.openzeppelin.com/" target="_blank">Docs</a>
+        <div class="button-wrapper">
+          <a class="button-new h-auto" href="/open-source-stack/request?id=talk_to_an_expert-networks_supported_subnavbar">Talk to an Expert</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section></div>
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+<div class="row-fluid-wrapper row-depth-1 row-number-3 dnd_area-row-1-padding dnd-section dnd_area-row-1-force-full-width-section">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-cell dnd-column" style="" data-widget-type="cell" data-x="0" data-w="12">
+
+<div class="row-fluid-wrapper row-depth-1 row-number-4 dnd-row">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-custom_widget dnd-module" style="" data-widget-type="custom_widget" data-x="0" data-w="12">
+<div id="hs_cos_wrapper_widget_1758744680728" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module"><script src="https://www.openzeppelin.com/hubfs/hub_generated/template_assets/1/196576322602/1777919003105/template_TextPlugin.min.js"></script>
+<style>
+  #hero .grid-glow-overlay.is-custom {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.8) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.8) 1px, transparent 1px);
+    z-index: 4;
+  }
+</style>
+<section id="hero">
+  <div class="announcement-spacer"></div>
+  <div class="grid-background">
+    <div class="grid-lines"></div>
+    <div class="grid-glow-overlay is-gray" id="gridGlowOverlay"></div>
+    <div class="grid-glow-overlay is-custom"></div>
+    <div class="grid-glow-overlay is-white"></div>
+  </div>
+  <div class="container is-1200">
+    <div class="hero-content">
+      <div class="icons-container">
+        <img class="base-icon" src="https://www.openzeppelin.com/hubfs/stellar-hero-square.svg" alt="Stellar" loading="eager">
+        <img class="oz-icon" src="https://www.openzeppelin.com/hubfs/oz-iso-networks.svg" alt="OpenZeppelin" loading="eager">
+      </div>
+      <div class="content">
+        <h1 class="main-title all-64">
+          Build Securely on Stellar<br>
+          with <span class="highlight">OpenZeppelin</span>
+        </h1>
+        <p class="description">
+          OpenZeppelin brings its trusted smart contracts libraries and developer workflows to Stellar, a Rust-based blockchain. Developers can build payments, stablecoins, and DeFi apps on Stellar using familiar, audited building blocks.
+        </p>
+      </div>
+      <div class="wrapper">
+        <div class="ui-container">
+          <div class="circle"></div>
+          <div class="circle"></div>
+          <div class="circle"></div>
+        </div>
+        <span id="text"></span>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+<script>
+  // Grid glowing animation
+  const heroContainer = document.getElementById('hero');
+  const gridGlowOverlay = document.getElementById('gridGlowOverlay');
+
+  document.body.addEventListener('mousemove', (e) => {
+    document.body.style.setProperty('--x', e.clientX + 'px');
+    document.body.style.setProperty('--y', e.clientY + 'px');
+  });
+
+  heroContainer.addEventListener('mouseenter', () => {
+    gridGlowOverlay.style.opacity = '1';
+  });
+
+  heroContainer.addEventListener('mouseleave', () => {
+    gridGlowOverlay.style.opacity = '0';
+  });
+
+  const baseIcon = document.querySelector('.base-icon');
+  const ozIcon = document.querySelector('.oz-icon');
+  const blueOverlay = document.querySelector('.grid-glow-overlay.is-custom');
+  const whiteOverlay = document.querySelector('.grid-glow-overlay.is-white');
+
+  if (baseIcon && blueOverlay) {
+    baseIcon.addEventListener('mouseenter', () => {
+      blueOverlay.classList.add('show');
+    });
+
+    baseIcon.addEventListener('mouseleave', () => {
+      blueOverlay.classList.remove('show');
+    });
+  }
+
+  if (ozIcon && whiteOverlay) {
+    ozIcon.addEventListener('mouseenter', () => {
+      whiteOverlay.classList.add('show');
+    });
+
+    ozIcon.addEventListener('mouseleave', () => {
+      whiteOverlay.classList.remove('show');
+    });
+  }
+  // Typewriter animation
+  document.addEventListener("DOMContentLoaded", () => {
+    gsap.registerPlugin(TextPlugin, ScrollTrigger);
+
+    const rawHTML = `// Compatible with OpenZeppelin Stellar Soroban Contracts ^0.6.0<br>use stellar_tokens::{<br>&nbsp;&nbsp;&nbsp;&nbsp;fungible::{Base, FungibleToken},<br>&nbsp;&nbsp;&nbsp;&nbsp;vault::{FungibleVault, Vault},<br>};<br><br><br><br>
+#[contractimpl]<br>
+impl TokenizedVault {`;
+    const lines = rawHTML
+    .split(/<br\s*\/?>/i)  
+    .map(line => line.trim())  
+    .filter(line => line.length > 0);  
+
+    const container = document.getElementById('text');
+
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    cursor.id = 'cursor';
+    cursor.textContent = '|';
+
+    const lineSpans = lines.map((_, index) => {
+      const line = document.createElement('span');
+      line.className = 'line';
+      const textSpan = document.createElement('span');
+      textSpan.className = 'line-text';
+      textSpan.textContent = '';
+      line.appendChild(textSpan);
+      container.appendChild(line);
+
+      if (index < lines.length - 1) {
+        container.appendChild(document.createElement('br'));
+      }
+
+      return { line, textSpan };
+    });
+
+    if (lineSpans.length) {
+      lineSpans[0].line.appendChild(cursor);
+    } else {
+      container.appendChild(cursor);
+    }
+
+    const charDuration = 0.0175; // half of 0.035
+    const minLineDuration = 0.07; // half of 0.14
+    const pauseAfterLine = 0.125; // half of 0.25
+    const initialDelay = 0.3;
+
+    const tl = gsap.timeline({ 
+      delay: initialDelay,
+      scrollTrigger: {
+        trigger: "#hero",
+        start: "bottom bottom", 
+        toggleActions: "play none none none"
+      }
+    });
+
+    lineSpans.forEach(({ line, textSpan }, idx) => {
+      const textForLine = lines[idx];
+      const dur = Math.max(minLineDuration, textForLine.length * charDuration);
+      tl.to(textSpan, {
+        duration: dur,
+        ease: "none",
+        text: { value: textForLine },
+        onStart: () => {
+          line.appendChild(cursor);
+        },
+        onUpdate: () => {
+          if (cursor.previousSibling !== textSpan) {
+            line.appendChild(cursor);
+          }
+        }
+      });
+      if (idx < lineSpans.length - 1) {
+        tl.to({}, { duration: pauseAfterLine });
+      }
+    });
+
+    tl.call(() => {
+      const last = lineSpans[lineSpans.length - 1];
+      if (last) last.line.appendChild(cursor);
+    });
+  });
+
+</script></div>
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+<div class="row-fluid-wrapper row-depth-1 row-number-5 dnd_area-row-2-force-full-width-section dnd_area-row-2-padding dnd-section">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-custom_widget dnd-module" style="" data-widget-type="custom_widget" data-x="0" data-w="12">
+<div id="hs_cos_wrapper_widget_1761750564434" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module"><section id="contracts">
+  <div class="container is-1200">
+    <div class="leading-copy">
+  <h2 class="heading-20">OpenZeppelin Stellar Contracts</h2>
+      <p>A dedicated library of audited contracts and utilities for building on the Stellar blockchain. These standards make it easier to issue assets, launch stablecoins, and create DeFi applications that connect directly to Stellar’s global payment rails.</p>
+      <a href="https://docs.openzeppelin.com/stellar-contracts/0.4.0/" class="arrowed-link" target="_blank">Docs →</a>
+      <a href="https://github.com/OpenZeppelin/stellar-contracts" class="arrowed-link" target="_blank">Github →</a>
+    </div>
+    <div class="box-grid">
+      <a href="https://wizard.openzeppelin.com/stellar" target="_blank" class="box-card contract-wizard">
+        <div class="top-copy">
+          <h4 class="heading-20">Contracts Wizard</h4>
+          <p>Generate secure Stellar smart contracts quickly and safely. Configure modules, preview the Rust code, and integrate directly into your workflow.</p>
+          <span class="arrowed-link">Try Wizard →</span>
+        </div>
+
+        <div class="image-wrapper">
+          <img src="https://www.openzeppelin.com/hubfs/wizard-stellar.webp" alt="Wizard">
+        </div>
+      </a>
+      <a href="https://mcp.openzeppelin.com/" target="_blank" class="box-card contracts-mcp">
+        <div class="top-copy">
+          <h4 class="heading-20">Contracts MCP</h4>
+          <p>Integrate OpenZeppelin Stellar smart contracts with AI-assisted workflows. Generate and deploy secure smart contracts using proven standards, guided by machine copilots.</p>
+          <span class="arrowed-link">Try Contracts MCP →</span>
+        </div>
+
+        <div class="image-wrapper">
+          <img class="first" src="https://www.openzeppelin.com/hubfs/mcp-stellar.svg" alt="MCP">
+          <img class="second" src="https://www.openzeppelin.com/hubfs/mcp2-stellar.svg" alt="MCP">
+        </div>
+      </a>
+    </div>
+  </div>
+
+</section></div>
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+<div class="row-fluid-wrapper row-depth-1 row-number-6 dnd-section dnd_area-row-3-padding dnd_area-row-3-force-full-width-section">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-cell dnd-column" style="" data-widget-type="cell" data-x="0" data-w="12">
+
+<div class="row-fluid-wrapper row-depth-1 row-number-7 dnd-row">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-custom_widget dnd-module" style="" data-widget-type="custom_widget" data-x="0" data-w="12">
+<div id="hs_cos_wrapper_widget_1761752274700" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module"><section id="steps">
+  <div class="container is-1200">
+
+    <div class="box-grid operate">
+      <h2 class="heading-48">Open Source Tools</h2>
+       <div class="box-card is-relayer">
+        <div class="top-copy">
+          <h4 class="heading-20">Relayer</h4>
+          <p>Enable secure relaying for Stellar transactions. Anchors and apps can simplify backend operations and transaction flow management by using OpenZeppelin Relayer.</p>
+          <a href="https://docs.openzeppelin.com/relayer" target="_blank" class="arrowed-link">Docs →</a>
+          <a href="https://github.com/OpenZeppelin/openzeppelin-relayer" target="_blank" class="arrowed-link">Github →</a>
+        </div>
+        <div class="image-wrapper">
+          <img loading="lazy" class="first" src="https://www.openzeppelin.com/hubfs/relayer-pop-dark.png" role="presentation">
+          <img loading="lazy" class="second" src="https://www.openzeppelin.com/hubfs/IMAGE-STELLAR-RELAYER.png" role="presentation">
+        </div>
+      </div>
+      <div class="box-card first is-monitor is-gray">
+        <div class="top-copy">
+          <h4 class="heading-20">Monitor</h4>
+          <p>Track Stellar applications in real time. Detect anomalies, log events, and trigger automated responses to safeguard Stellar smart contracts and protect users.</p>
+          <a href="https://docs.openzeppelin.com/monitor" target="_blank" class="arrowed-link">Docs →</a>
+          <a href="https://github.com/OpenZeppelin/openzeppelin-monitor" target="_blank" class="arrowed-link">Github →</a>
+        </div>
+        <div class="image-wrapper">
+          <div class="second">
+            <div class="switch">
+              <div class="switch-circle"></div>
+            </div>
+            <img loading="lazy" class="" src="https://www.openzeppelin.com/hubfs/track-pop-1.png" role="presentation">
+          </div>
+          <img loading="lazy" class="first" src="https://www.openzeppelin.com/hubfs/monitor-pop-dark.png" role="presentation">
+        </div>
+      </div>
+
+     
+    </div>
+    <div class="box-grid operate">
+      <a href="https://builder.openzeppelin.com" target="_blank" class="box-card fourth is-gray">
+        <div class="top-copy">
+          <h4 class="heading-20">UI Builder</h4>
+          <p>Generate front-ends for Stellar contracts in seconds. Configure functions and export a complete React app to interact with deployed contracts.</p>
+          <span class="arrowed-link">Try UI Builder →</span>
+        </div>
+        <div class="image-wrapper"> 
+          <img class="first" src="https://www.openzeppelin.com/hubfs/IMG-STELLAR-UI.png" role="presentation">
+          <img class="second" src="https://www.openzeppelin.com/hubfs/ui-builder-dark-pop.png" role="presentation">
+        </div>
+      </a>
+
+      <a href="https://github.com/OpenZeppelin/soroban-security-detectors-sdk" target="_blank" class="box-card first company">
+        <div class="top-copy">
+          <h4 class="heading-20">Soroban Security Detectors SDK</h4>
+          <p>Spot issues in Stellar contracts before they reach mainnet. This SDK enables developers to build custom static-analysis scanners and comes with prebuilt checks to catch common pitfalls early.</p>
+          <span class="arrowed-link">Github →</span>
+        </div>
+        <div class="image-wrapper">
+          <img loading="lazy" src="https://www.openzeppelin.com/hubfs/soroban-asset.svg" role="presentation" style="width:100%;transform:none!important;">
+          <div class="scanner">
+            <div class="before"></div>
+            <div class="after"></div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="awards-row">
+      <p>Enterprise-grade security and compliance for institutional adoption</p>
+      <img loading="lazy" src="https://www.openzeppelin.com/hubfs/awards-row.svg" role="presentation">
+    </div>
+  </div>
+</section></div>
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+<div class="row-fluid-wrapper row-depth-1 row-number-8 dnd-section dnd_area-row-4-force-full-width-section dnd_area-row-4-padding">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-cell dnd-column" style="" data-widget-type="cell" data-x="0" data-w="12">
+
+<div class="row-fluid-wrapper row-depth-1 row-number-9 dnd-row">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-custom_widget dnd-module" style="" data-widget-type="custom_widget" data-x="0" data-w="12">
+<div id="hs_cos_wrapper_widget_1758748379997" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module"><section id="services">
+  <div class="container is-1200">
+
+    <div class="box-grid operate">
+      <h2 class="heading-48">Security Services</h2>
+      <div class="box-card is-dark-gray ">
+        <div class="top-copy">
+          <h4 class="heading-20">Smart Contract Security Audit</h4>
+          <p>Secure your Stellar smart contracts with comprehensive audits that ensure reliability and resilience for applications spanning payments, stablecoins, and DeFi protocols.</p>
+          <a href="https://www.openzeppelin.com/security-audits" class="arrowed-link">Learn More →</a>
+        </div>
+        <div class="image-wrapper">
+          
+          <img src="https://www.openzeppelin.com/hubfs/sca-asset.webp" role="presentation">
+          
+        </div>
+      </div>
+
+      <div class="box-card is-dark-gray blockchain">
+        <div class="top-copy">
+          <h4 class="heading-20">Blockchain Infrastructure Audit</h4>
+          <p>Strengthen your Stellar infrastructure through specialized audits of anchor services, bridge protocols, and clients implementations, ensuring security across every layer of your blockchain operations.</p>
+          <a href="https://www.openzeppelin.com/blockchain-infrastructure" class="arrowed-link">Learn More →</a>
+        </div>
+        <div class="image-wrapper is-static">
+          <img src="https://www.openzeppelin.com/hubfs/bia-asset-v2.webp" role="presentation">
+          <img class="pop" src="https://www.openzeppelin.com/hubfs/audit-pop.webp" role="presentation">
+        </div>
+      </div>
+      
+    </div>
+
+  </div>
+</section></div>
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+<div class="row-fluid-wrapper row-depth-1 row-number-10 dnd-section dnd_area-row-5-padding dnd_area-row-5-force-full-width-section">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-cell dnd-column" style="" data-widget-type="cell" data-x="0" data-w="12">
+
+<div class="row-fluid-wrapper row-depth-1 row-number-11 dnd-row">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-custom_widget dnd-module" style="" data-widget-type="custom_widget" data-x="0" data-w="12">
+<div id="hs_cos_wrapper_widget_1758742172734" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module">
+<!-- 
+<div>
+The Notorious Bug Digest #5: Post EIP-7702 Pitfalls, JIT Penalty Rebates, and Manipulation of Recursive Functions - 
+
+              Solidity
+              
+              Notorious Bug Digest
+              
+              Research
+              
+              Security InsightsRH
+              
+              Base
+              
+              ZKsync
+              
+              Linea
+              
+              Ethereum
+              
+              Arbitrum
+              
+              OP Mainnet
+              
+              Starknet
+              
+              Midnight
+              
+              Stellar
+              
+              Zama
+              
+</div>
+
+<div>
+Beyond Zero Knowledge: How Fully Homomorphic Encryption Enables Private Shared State - 
+
+              ZKP
+              
+              Research
+              
+              Development InsightsRH
+              
+              Base
+              
+              ZKsync
+              
+              Linea
+              
+              Ethereum
+              
+              Arbitrum
+              
+              OP Mainnet
+              
+              Starknet
+              
+              Midnight
+              
+              Stellar
+              
+              Zama
+              
+</div>
+
+<div>
+The Notorious Bug Digest #4 - 
+
+              Notorious Bug Digest
+              
+              Research
+              
+              Security InsightsRH
+              
+              Base
+              
+              ZKsync
+              
+              Linea
+              
+              Ethereum
+              
+              Arbitrum
+              
+              OP Mainnet
+              
+              Starknet
+              
+              Midnight
+              
+              Stellar
+              
+              Zama
+              
+</div>
+
+<div>
+The Notorious Bug Digest #3 - 
+
+              Solidity
+              
+              Rust
+              
+              Notorious Bug Digest
+              
+              Balancer
+              
+              Research
+              
+              Security InsightsRH
+              
+              Base
+              
+              ZKsync
+              
+              Linea
+              
+              Ethereum
+              
+              Arbitrum
+              
+              OP Mainnet
+              
+              Starknet
+              
+              Midnight
+              
+              Stellar
+              
+              Zama
+              
+</div>
+
+<div>
+Beyond Smart Contracts: A Deep Dive into Blockchain Infrastructure Security Auditing - 
+
+              Infrastructure Audit
+              
+              Research
+              
+              Security InsightsRH
+              
+              Base
+              
+              ZKsync
+              
+              Linea
+              
+              Ethereum
+              
+              Arbitrum
+              
+              OP Mainnet
+              
+              Starknet
+              
+              Midnight
+              
+              Stellar
+              
+              Zama
+              
+</div>
+
+<div>
+ERC-4626 Tokens in DeFi: Exchange Rate Manipulation Risks - 
+
+              Incidents
+              
+              Research
+              
+              Security InsightsRH
+              
+              Base
+              
+              ZKsync
+              
+              Linea
+              
+              Ethereum
+              
+              Arbitrum
+              
+              OP Mainnet
+              
+              Starknet
+              
+              Midnight
+              
+              Stellar
+              
+              Zama
+              
+</div>
+
+<div>
+The Notorious Bug Digest #2 - 
+
+              Solidity
+              
+              Rust
+              
+              Notorious Bug Digest
+              
+              Research
+              
+              Security InsightsRH
+              
+              Base
+              
+              ZKsync
+              
+              Linea
+              
+              Ethereum
+              
+              Arbitrum
+              
+              OP Mainnet
+              
+              Starknet
+              
+              Midnight
+              
+              Stellar
+              
+              Zama
+              
+</div>
+
+<div>
+The Notorious Bug Digest #1 - 
+
+              Solidity
+              
+              Notorious Bug Digest
+              
+              Research
+              
+              Security InsightsRH
+              
+              Base
+              
+              ZKsync
+              
+              Linea
+              
+              Ethereum
+              
+              Arbitrum
+              
+              OP Mainnet
+              
+              Starknet
+              
+              Midnight
+              
+              Stellar
+              
+              Zama
+              
+</div>
+
+<div>
+Web3 Security Auditor's 2024 Rewind - 
+
+              Research
+              
+              Security InsightsRH
+              
+              Base
+              
+              ZKsync
+              
+              Linea
+              
+              Ethereum
+              
+              Arbitrum
+              
+              OP Mainnet
+              
+              Starknet
+              
+              Midnight
+              
+              Stellar
+              
+              Zama
+              
+</div>
+
+<div>
+What is a Smart Contract Audit: Lessons from OpenZeppelin’s 700+ Audits - 
+
+              Research
+              
+              Security InsightsRH
+              
+              Base
+              
+              ZKsync
+              
+              Linea
+              
+              Ethereum
+              
+              Arbitrum
+              
+              OP Mainnet
+              
+              Starknet
+              
+              Midnight
+              
+              Stellar
+              
+              Zama
+              
+</div>
+
+
+stellar
+-->
+<section id="blocks-slider">
+  <div class="container is-1200">
+    <div class="holder-slider">
+      <p class="slider-desc">
+        Content to Help You Build
+      </p>
+      <div class="blocks-slide">
+        
+        <article class="post"><a href="https://www.openzeppelin.com/news/the-notorious-bug-digest-5" class="main-link" aria-label="The Notorious Bug Digest #5: Post EIP-7702 Pitfalls, JIT Penalty Rebates, and Manipulation of Recursive Functions"></a>
+          <div class="featured-image-wrapper">
+            
+            <img src="https://www.openzeppelin.com/hs-fs/hubfs/1-2.png?width=442&amp;height=247&amp;name=1-2.png" alt="The Notorious Bug Digest #5: Post EIP-7702 Pitfalls, JIT Penalty Rebates, and Manipulation of Recursive Functions" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/1-2.png?width=221&amp;height=124&amp;name=1-2.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/1-2.png?width=442&amp;height=247&amp;name=1-2.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/1-2.png?width=663&amp;height=371&amp;name=1-2.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/1-2.png?width=884&amp;height=494&amp;name=1-2.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/1-2.png?width=1105&amp;height=618&amp;name=1-2.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/1-2.png?width=1326&amp;height=741&amp;name=1-2.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            
+          </div>
+          <div class="post-title">The Notorious Bug Digest #5: Post EIP-7702 Pitfalls, JIT Penalty Rebates, and Manipulation of Recursive Functions</div>
+          <div class="post-meta">
+            <div class="meta-content">
+              <span class="category"> 
+                
+                
+                
+                
+                
+                
+                
+                
+                Security Insights
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </span>
+              <span class="date"><span class="date-separator">·</span> September 17, 2025</span>
+            </div>
+            <div class="arrow">
+              <img src="https://www.openzeppelin.com/hubfs/arrow-right-white.svg" role="presentation">
+            </div>
+          </div>
+
+        </article>
+        
+        <article class="post"><a href="https://www.openzeppelin.com/news/how-fully-homomorphic-encryption-enables-private-shared-state" class="main-link" aria-label="Beyond Zero Knowledge: How Fully Homomorphic Encryption Enables Private Shared State"></a>
+          <div class="featured-image-wrapper">
+            
+            <img src="https://www.openzeppelin.com/hs-fs/hubfs/beyondzk-1.png?width=442&amp;height=247&amp;name=beyondzk-1.png" alt="Beyond Zero Knowledge: How Fully Homomorphic Encryption Enables Private Shared State" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/beyondzk-1.png?width=221&amp;height=124&amp;name=beyondzk-1.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/beyondzk-1.png?width=442&amp;height=247&amp;name=beyondzk-1.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/beyondzk-1.png?width=663&amp;height=371&amp;name=beyondzk-1.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/beyondzk-1.png?width=884&amp;height=494&amp;name=beyondzk-1.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/beyondzk-1.png?width=1105&amp;height=618&amp;name=beyondzk-1.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/beyondzk-1.png?width=1326&amp;height=741&amp;name=beyondzk-1.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            
+          </div>
+          <div class="post-title">Beyond Zero Knowledge: How Fully Homomorphic Encryption Enables Private Shared State</div>
+          <div class="post-meta">
+            <div class="meta-content">
+              <span class="category"> 
+                
+                
+                
+                
+                
+                
+                Development Insights
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </span>
+              <span class="date"><span class="date-separator">·</span> August 13, 2025</span>
+            </div>
+            <div class="arrow">
+              <img src="https://www.openzeppelin.com/hubfs/arrow-right-white.svg" role="presentation">
+            </div>
+          </div>
+
+        </article>
+        
+        <article class="post"><a href="https://www.openzeppelin.com/news/notorious-bug-digest-4" class="main-link" aria-label="The Notorious Bug Digest #4"></a>
+          <div class="featured-image-wrapper">
+            
+            <img src="https://www.openzeppelin.com/hs-fs/hubfs/4-2.png?width=442&amp;height=247&amp;name=4-2.png" alt="The Notorious Bug Digest #4" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/4-2.png?width=221&amp;height=124&amp;name=4-2.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/4-2.png?width=442&amp;height=247&amp;name=4-2.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/4-2.png?width=663&amp;height=371&amp;name=4-2.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/4-2.png?width=884&amp;height=494&amp;name=4-2.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/4-2.png?width=1105&amp;height=618&amp;name=4-2.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/4-2.png?width=1326&amp;height=741&amp;name=4-2.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            
+          </div>
+          <div class="post-title">The Notorious Bug Digest #4</div>
+          <div class="post-meta">
+            <div class="meta-content">
+              <span class="category"> 
+                
+                
+                
+                
+                
+                
+                Security Insights
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </span>
+              <span class="date"><span class="date-separator">·</span> August 6, 2025</span>
+            </div>
+            <div class="arrow">
+              <img src="https://www.openzeppelin.com/hubfs/arrow-right-white.svg" role="presentation">
+            </div>
+          </div>
+
+        </article>
+        
+        <article class="post"><a href="https://www.openzeppelin.com/news/the-notorious-bug-digest-3" class="main-link" aria-label="The Notorious Bug Digest #3"></a>
+          <div class="featured-image-wrapper">
+            
+            <img src="https://www.openzeppelin.com/hs-fs/hubfs/3-1.png?width=442&amp;height=247&amp;name=3-1.png" alt="The Notorious Bug Digest #3" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/3-1.png?width=221&amp;height=124&amp;name=3-1.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/3-1.png?width=442&amp;height=247&amp;name=3-1.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/3-1.png?width=663&amp;height=371&amp;name=3-1.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/3-1.png?width=884&amp;height=494&amp;name=3-1.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/3-1.png?width=1105&amp;height=618&amp;name=3-1.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/3-1.png?width=1326&amp;height=741&amp;name=3-1.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            
+          </div>
+          <div class="post-title">The Notorious Bug Digest #3</div>
+          <div class="post-meta">
+            <div class="meta-content">
+              <span class="category"> 
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                Security Insights
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </span>
+              <span class="date"><span class="date-separator">·</span> June 2, 2025</span>
+            </div>
+            <div class="arrow">
+              <img src="https://www.openzeppelin.com/hubfs/arrow-right-white.svg" role="presentation">
+            </div>
+          </div>
+
+        </article>
+        
+        <article class="post"><a href="https://www.openzeppelin.com/news/beyond-smart-contracts-a-deep-dive-into-blockchain-infrastructure-security-auditing" class="main-link" aria-label="Beyond Smart Contracts: A Deep Dive into Blockchain Infrastructure Security Auditing"></a>
+          <div class="featured-image-wrapper">
+            
+            <img src="https://www.openzeppelin.com/hs-fs/hubfs/beyondinfra-1.png?width=442&amp;height=247&amp;name=beyondinfra-1.png" alt="Beyond Smart Contracts: A Deep Dive into Blockchain Infrastructure Security Auditing" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/beyondinfra-1.png?width=221&amp;height=124&amp;name=beyondinfra-1.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/beyondinfra-1.png?width=442&amp;height=247&amp;name=beyondinfra-1.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/beyondinfra-1.png?width=663&amp;height=371&amp;name=beyondinfra-1.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/beyondinfra-1.png?width=884&amp;height=494&amp;name=beyondinfra-1.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/beyondinfra-1.png?width=1105&amp;height=618&amp;name=beyondinfra-1.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/beyondinfra-1.png?width=1326&amp;height=741&amp;name=beyondinfra-1.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            
+          </div>
+          <div class="post-title">Beyond Smart Contracts: A Deep Dive into Blockchain Infrastructure Security Auditing</div>
+          <div class="post-meta">
+            <div class="meta-content">
+              <span class="category"> 
+                
+                
+                
+                
+                
+                
+                Security Insights
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </span>
+              <span class="date"><span class="date-separator">·</span> May 30, 2025</span>
+            </div>
+            <div class="arrow">
+              <img src="https://www.openzeppelin.com/hubfs/arrow-right-white.svg" role="presentation">
+            </div>
+          </div>
+
+        </article>
+        
+        <article class="post"><a href="https://www.openzeppelin.com/news/erc-4626-tokens-in-defi-exchange-rate-manipulation-risks" class="main-link" aria-label="ERC-4626 Tokens in DeFi: Exchange Rate Manipulation Risks"></a>
+          <div class="featured-image-wrapper">
+            
+            <img src="https://www.openzeppelin.com/hs-fs/hubfs/ERC-4626.png?width=442&amp;height=247&amp;name=ERC-4626.png" alt="ERC-4626 Tokens in DeFi: Exchange Rate Manipulation Risks" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/ERC-4626.png?width=221&amp;height=124&amp;name=ERC-4626.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/ERC-4626.png?width=442&amp;height=247&amp;name=ERC-4626.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/ERC-4626.png?width=663&amp;height=371&amp;name=ERC-4626.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/ERC-4626.png?width=884&amp;height=494&amp;name=ERC-4626.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/ERC-4626.png?width=1105&amp;height=618&amp;name=ERC-4626.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/ERC-4626.png?width=1326&amp;height=741&amp;name=ERC-4626.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            
+          </div>
+          <div class="post-title">ERC-4626 Tokens in DeFi: Exchange Rate Manipulation Risks</div>
+          <div class="post-meta">
+            <div class="meta-content">
+              <span class="category"> 
+                
+                
+                
+                
+                
+                
+                Security Insights
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </span>
+              <span class="date"><span class="date-separator">·</span> May 22, 2025</span>
+            </div>
+            <div class="arrow">
+              <img src="https://www.openzeppelin.com/hubfs/arrow-right-white.svg" role="presentation">
+            </div>
+          </div>
+
+        </article>
+        
+        <article class="post"><a href="https://www.openzeppelin.com/news/the-notorious-bug-digest-2" class="main-link" aria-label="The Notorious Bug Digest #2"></a>
+          <div class="featured-image-wrapper">
+            
+            <img src="https://www.openzeppelin.com/hs-fs/hubfs/2-4.png?width=442&amp;height=247&amp;name=2-4.png" alt="The Notorious Bug Digest #2" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/2-4.png?width=221&amp;height=124&amp;name=2-4.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/2-4.png?width=442&amp;height=247&amp;name=2-4.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/2-4.png?width=663&amp;height=371&amp;name=2-4.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/2-4.png?width=884&amp;height=494&amp;name=2-4.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/2-4.png?width=1105&amp;height=618&amp;name=2-4.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/2-4.png?width=1326&amp;height=741&amp;name=2-4.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            
+          </div>
+          <div class="post-title">The Notorious Bug Digest #2</div>
+          <div class="post-meta">
+            <div class="meta-content">
+              <span class="category"> 
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                Security Insights
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </span>
+              <span class="date"><span class="date-separator">·</span> March 18, 2025</span>
+            </div>
+            <div class="arrow">
+              <img src="https://www.openzeppelin.com/hubfs/arrow-right-white.svg" role="presentation">
+            </div>
+          </div>
+
+        </article>
+        
+        <article class="post"><a href="https://www.openzeppelin.com/news/the-notorious-bug-digests-1" class="main-link" aria-label="The Notorious Bug Digest #1"></a>
+          <div class="featured-image-wrapper">
+            
+            <img src="https://www.openzeppelin.com/hs-fs/hubfs/1-1.png?width=442&amp;height=247&amp;name=1-1.png" alt="The Notorious Bug Digest #1" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/1-1.png?width=221&amp;height=124&amp;name=1-1.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/1-1.png?width=442&amp;height=247&amp;name=1-1.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/1-1.png?width=663&amp;height=371&amp;name=1-1.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/1-1.png?width=884&amp;height=494&amp;name=1-1.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/1-1.png?width=1105&amp;height=618&amp;name=1-1.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/1-1.png?width=1326&amp;height=741&amp;name=1-1.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            
+          </div>
+          <div class="post-title">The Notorious Bug Digest #1</div>
+          <div class="post-meta">
+            <div class="meta-content">
+              <span class="category"> 
+                
+                
+                
+                
+                
+                
+                
+                
+                Security Insights
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </span>
+              <span class="date"><span class="date-separator">·</span> February 19, 2025</span>
+            </div>
+            <div class="arrow">
+              <img src="https://www.openzeppelin.com/hubfs/arrow-right-white.svg" role="presentation">
+            </div>
+          </div>
+
+        </article>
+        
+        <article class="post"><a href="https://www.openzeppelin.com/news/web3-security-auditors-2024-rewind" class="main-link" aria-label="Web3 Security Auditor's 2024 Rewind"></a>
+          <div class="featured-image-wrapper">
+            
+            <img src="https://www.openzeppelin.com/hs-fs/hubfs/Rewind.png?width=442&amp;height=247&amp;name=Rewind.png" alt="Web3 Security Auditor's 2024 Rewind" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/Rewind.png?width=221&amp;height=124&amp;name=Rewind.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/Rewind.png?width=442&amp;height=247&amp;name=Rewind.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/Rewind.png?width=663&amp;height=371&amp;name=Rewind.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/Rewind.png?width=884&amp;height=494&amp;name=Rewind.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/Rewind.png?width=1105&amp;height=618&amp;name=Rewind.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/Rewind.png?width=1326&amp;height=741&amp;name=Rewind.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            
+          </div>
+          <div class="post-title">Web3 Security Auditor's 2024 Rewind</div>
+          <div class="post-meta">
+            <div class="meta-content">
+              <span class="category"> 
+                
+                
+                
+                
+                Security Insights
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </span>
+              <span class="date"><span class="date-separator">·</span> February 4, 2025</span>
+            </div>
+            <div class="arrow">
+              <img src="https://www.openzeppelin.com/hubfs/arrow-right-white.svg" role="presentation">
+            </div>
+          </div>
+
+        </article>
+        
+        <article class="post"><a href="https://www.openzeppelin.com/news/what-is-a-smart-contract-audit-lessons-from-openzeppelins-1000-audits" class="main-link" aria-label="What is a Smart Contract Audit: Lessons from OpenZeppelin’s 700+ Audits"></a>
+          <div class="featured-image-wrapper">
+            
+            <img src="https://www.openzeppelin.com/hs-fs/hubfs/Audits.png?width=442&amp;height=247&amp;name=Audits.png" alt="What is a Smart Contract Audit: Lessons from OpenZeppelin’s 700+ Audits" width="442" height="247" srcset="https://www.openzeppelin.com/hs-fs/hubfs/Audits.png?width=221&amp;height=124&amp;name=Audits.png 221w, https://www.openzeppelin.com/hs-fs/hubfs/Audits.png?width=442&amp;height=247&amp;name=Audits.png 442w, https://www.openzeppelin.com/hs-fs/hubfs/Audits.png?width=663&amp;height=371&amp;name=Audits.png 663w, https://www.openzeppelin.com/hs-fs/hubfs/Audits.png?width=884&amp;height=494&amp;name=Audits.png 884w, https://www.openzeppelin.com/hs-fs/hubfs/Audits.png?width=1105&amp;height=618&amp;name=Audits.png 1105w, https://www.openzeppelin.com/hs-fs/hubfs/Audits.png?width=1326&amp;height=741&amp;name=Audits.png 1326w" sizes="(max-width: 442px) 100vw, 442px">
+            
+          </div>
+          <div class="post-title">What is a Smart Contract Audit: Lessons from OpenZeppelin’s 700+ Audits</div>
+          <div class="post-meta">
+            <div class="meta-content">
+              <span class="category"> 
+                
+                
+                
+                
+                Security Insights
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                </span>
+              <span class="date"><span class="date-separator">·</span> January 22, 2025</span>
+            </div>
+            <div class="arrow">
+              <img src="https://www.openzeppelin.com/hubfs/arrow-right-white.svg" role="presentation">
+            </div>
+          </div>
+
+        </article>
+        
+
+        stellar
+
+      </div>
+      
+      
+      <!-- Slide arrows -->
+      <div class="slick-arrows">
+        <div class="slick-arrow slick-prev">
+          <svg width="11" height="18" viewbox="0 0 11 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9.89062 1.22852L2.06543 9.05402L9.89062 16.8792" stroke="#494949" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="slick-arrow slick-next">
+          <svg width="11" height="18" viewbox="0 0 11 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1.13281 1.22852L8.95801 9.05402L1.13281 16.8792" stroke="#494949" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLICK -->
+<script src="https://www.openzeppelin.com/hs-fs/hub/7795250/hub_generated/template_assets/132126807444/1693266845839/oz_2022/templates/slick-min.min.js"></script></div>
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+<div class="row-fluid-wrapper row-depth-1 row-number-12 dnd_area-row-6-padding dnd-section dnd_area-row-6-force-full-width-section">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-cell dnd-column" style="" data-widget-type="cell" data-x="0" data-w="12">
+
+<div class="row-fluid-wrapper row-depth-1 row-number-13 dnd-row">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-custom_widget dnd-module" style="" data-widget-type="custom_widget" data-x="0" data-w="12">
+<div id="hs_cos_wrapper_widget_1758750175716" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module"><section id="explore">
+  <div class="container is-1200">
+    <div class="networks-content">
+      <h3 class="all-32">Explore other networks</h3>
+      <div class="flex is-ac">
+        <a class="ethereum" href="/networks/ethereum">
+          <img src="https://www.openzeppelin.com/hubfs/eth-square-logo.svg" alt="Ethereum">
+          <p class="chain-name">Ethereum</p>
+        </a>
+        <a class="arbitrum" href="/networks/arbitrum">
+          <img src="https://www.openzeppelin.com/hubfs/arbitrum-iso-square-v3.svg" alt="Arbitrum">
+          <p class="chain-name">Arbitrum</p>
+        </a>
+        <a class="zksync" href="/networks/zksync">
+          <img src="https://www.openzeppelin.com/hubfs/zksync-square-logo.svg" alt="ZKsync">
+          <p class="chain-name">ZKsync</p>
+        </a>
+        <a class="op" href="/networks/op-mainnet">
+          <img src="https://www.openzeppelin.com/hubfs/op-mainnet-networks.svg" alt="OP Mainnet">
+          <p class="chain-name">OP Mainnet</p>
+        </a>
+        <a class="linea hidden-767" href="/networks/linea">
+          <img src="https://www.openzeppelin.com/hubfs/linea-iso-square2.svg" alt="Linea">
+          <p class="chain-name">Linea</p>
+        </a>
+        <a class="base hidden-767" href="/networks/base">
+          <img src="https://www.openzeppelin.com/hubfs/base-chain.svg" alt="Base">
+          <p class="chain-name">Base</p>
+        </a>
+
+      </div>
+      <a href="https://www.openzeppelin.com/networks" class="arrowed-link">See All →</a>
+    </div>
+  </div>
+</section></div>
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+<div class="row-fluid-wrapper row-depth-1 row-number-14 dnd-section dnd_area-row-7-force-full-width-section dnd_area-row-7-padding">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-cell dnd-column" style="" data-widget-type="cell" data-x="0" data-w="12">
+
+<div class="row-fluid-wrapper row-depth-1 row-number-15 dnd-row">
+<div class="row-fluid ">
+<div class="span12 widget-span widget-type-custom_widget dnd-module" style="" data-widget-type="custom_widget" data-x="0" data-w="12">
+<div id="hs_cos_wrapper_widget_1758749409564" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module"><section id="prefooter">
+  <div class="grid-background">
+    <div class="grid-lines"></div>
+    <div class="grid-glow-overlay is-gray" id="gridGlowOverlay"></div>
+    <div class="grid-glow-overlay is-blue"></div>
+  </div>
+  <div class="container is-1200">
+    <div class="hero-content">
+      <div class="content">
+        <h2 class="main-title all-64">
+          Build and protect the open economy. Together.
+        </h2>
+        <a id="request-networks_prefooter" href="https://www.openzeppelin.com/request?id=request-networks_prefoote" class="button-new">Talk to an Expert</a>
+      </div>
+    </div>
+  </div>
+</section></div>
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+</div><!--end widget-span -->
+</div><!--end row-->
+</div><!--end row-wrapper -->
+
+</div><!--end widget-span -->
+</div>
+</div>
+</div>
+</div>
+<!-- GSAP CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.1/gsap.min.js" integrity="sha512-qF6akR/fsZAB4Co1QDDnUXWnaQseLGXoniuSuSlPQK6+aWhlMZcHzkasCSlnWoe+TJuudlka1/IQ01Dnhgq95g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- GSAP [ScrollTrigger] CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.1/ScrollTrigger.min.js" integrity="sha512-IHDCHrefnBT3vOCsvdkMvJF/MCPz/nBauQLzJkupa4Gn4tYg5a6VGyzIrjo6QAUy3We5HFOZUlkUpP0dkgE60A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- ANIMEjs CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha512-z4OUqw38qNLpn1libAN9BsoDx6nbNFio5lA6CuTp9NlK83b89hgyCVq+N5FdBJptINztxn1Z3SaKSKUS5UP60Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- HOMEPAGE Scripts -->
+<script src="https://www.openzeppelin.com/hubfs/hub_generated/template_assets/1/119883780118/1777919001318/template_homepage.min.js"></script>
+
+      </main>
+
+      
+      <div data-global-resource-path="oz_2022/templates/partials/footer-EA-live.html"><div id="hs_cos_wrapper_module_172357946680564" class="hs_cos_wrapper hs_cos_wrapper_widget hs_cos_wrapper_type_module" style="" data-hs-cos-general-type="widget" data-hs-cos-type="module"><footer id="footer-navigation">
+  <div class="container-1200">
+    <div class="footer-content">
+      <div class="footer-column smart-contracts">
+        <div class="footer-subcolumn">
+          <p class="footer-column-title">Smart Contracts</p>
+          <ul>
+            <li><a href="https://www.openzeppelin.com/contracts">Contracts Libraries</a></li>
+            <li><a href="https://wizard.openzeppelin.com/" target="_blank">Contracts Wizard</a></li>
+            <li><a href="https://mcp.openzeppelin.com/" target="_blank">Contracts MCP</a></li>
+            <li><a href="https://docs.openzeppelin.com/upgrades-plugins/" target="_blank">Upgrades Plugin</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-subcolumn">
+          <p class="footer-column-title">Open Source Tools</p>
+          <ul>
+            <li><a href="https://www.openzeppelin.com/open-source-stack#operate">Relayer</a></li>
+            <li><a href="https://www.openzeppelin.com/open-source-stack#operate">Monitor</a></li>
+            <li><a href="https://builder.openzeppelin.com/" target="_blank">UI Builder</a></li>
+            <li><a href="https://safeutils.openzeppelin.com/" target="_blank">Safe Utils</a></li>
+            <li><a href="https://access-manager.openzeppelin.com/explorer/11155111" target="_blank">Access Control</a></li>
+            <li><a href="https://www.openzeppelin.com/open-source-stack">The Open Source Stack</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-subcolumn">
+          <p class="footer-column-title">Blockchains</p>
+          <ul>
+            <li><a href="https://www.openzeppelin.com/networks/arbitrum">Arbitrum</a></li>
+            <li><a href="https://www.openzeppelin.com/networks/base">Base</a></li>
+            <li><a href="https://www.openzeppelin.com/networks/ethereum">Ethereum</a></li>
+             <li><a href="https://www.openzeppelin.com/networks/linea">Linea</a></li>
+            <li><a href="/networks/midnight">Midnight</a></li>
+            <li><a href="https://www.openzeppelin.com/networks/op-mainnet">OP Mainnet</a></li>
+            <li><a href="/networks/starknet">Starknet</a></li>
+            <li><a href="/networks/stellar">Stellar</a></li>
+            <li><a href="/networks/sui">Sui</a></li>
+            <li><a href="/networks/zama">Zama</a></li>
+            <li><a href="https://www.openzeppelin.com/networks/zksync">ZKsync</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-column services">
+        <div class="footer-subcolumn">
+          <p class="footer-column-title">Services</p>
+          <ul>
+            <li><a href="https://www.openzeppelin.com/continuous-security-program">Continuous Security Program</a></li>
+            <li><a href="https://www.openzeppelin.com/security-audits">Smart Contract Security Audit</a></li>
+            <li><a href="https://www.openzeppelin.com/blockchain-infrastructure">Blockchain Infrastructure Audit</a></li>
+            <li><a href="https://www.openzeppelin.com/zkp">ZKP Audit</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-subcolumn">
+          <p class="footer-column-title">Solutions</p>
+          <ul>
+            <li><a href="https://www.openzeppelin.com/ecosystems">Ecosystem Stack</a></li>
+            <li><a href="https://www.openzeppelin.com/financial-institutions">Financial Institutions Stack</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-column resources">
+        <div class="footer-subcolumn">
+          <p class="footer-column-title">Resources</p>
+          <ul>
+            <li><a href="https://www.openzeppelin.com/research">Research</a></li>
+            <li><a href="https://docs.openzeppelin.com/" target="_blank">Documentation</a></li>
+            <li><a href="https://www.openzeppelin.com/stats">Stats</a></li>
+            <li><a href="https://forum.openzeppelin.com/" target="_blank">Forum</a></li>
+            <li><a href="https://ethernaut.openzeppelin.com/" target="_blank">Ethernaut CTF</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-column company">
+        <div class="footer-subcolumn">
+          <p class="footer-column-title">Company</p>
+          <ul>
+            <li><a href="https://www.openzeppelin.com/about">About Us</a></li>
+            <li><a href="https://www.openzeppelin.com/why-openzeppelin">Why OpenZeppelin</a></li>
+            <li><a href="https://www.openzeppelin.com/news">News</a></li>
+            <li><a href="https://www.openzeppelin.com/customer-stories">Customer Stories</a></li>
+            <li><a href="https://www.openzeppelin.com/careers">Careers</a></li>
+            <li><a href="https://www.openzeppelin.com/brand-kit">Brand Kit</a></li>
+            <li><a href="https://trust.openzeppelin.com/" target="_blank">Trust</a></li>
+            <li><a href="https://www.openzeppelin.com/employee-verification">Employee Verification</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-subcolumn">
+          <p class="footer-column-title">Terms &amp; Policies</p>
+          <ul>
+            <li><a href="https://www.openzeppelin.com/tos">Terms of Service</a></li>
+            <li><a href="https://www.openzeppelin.com/privacy">Privacy Policy</a></li>
+            <li><a href="https://www.openzeppelin.com/trademark-guidelines">Trademark Guidelines</a></li>
+            <li><a href="https://www.openzeppelin.com/agpl-license">AGPL License</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="social-links">
+        <a href="https://github.com/openzeppelin" aria-label="GitHub">
+          <img src="https://www.openzeppelin.com/hubfs/github-icon-footer.svg" alt="GitHub">
+        </a>
+        <a href="https://twitter.com/OpenZeppelin" aria-label="X (Twitter)">
+          <img src="https://www.openzeppelin.com/hubfs/x-icon-footer.svg" alt="X">
+        </a>
+        <a href="https://www.linkedin.com/company/openzeppelin/" aria-label="LinkedIn">
+          <img src="https://www.openzeppelin.com/hubfs/linkedin-icon-footer.svg" alt="LinkedIn">
+        </a>
+      </div>
+      <div class="copyright">
+        © 2026 Zeppelin Group Ltd
+      </div>
+    </div>
+  </div>
+</footer></div></div>
+      
+    </div>
+
+    
+    
+    
+<!-- HubSpot performance collection script -->
+<script defer src="/hs/hsstatic/content-cwv-embed/static-1.1293/embed.js"></script>
+<script src="https://www.openzeppelin.com/hubfs/hub_generated/template_assets/1/67469578632/1777919007755/template_main.min.js"></script>
+<script>
+var hsVars = hsVars || {}; hsVars['language'] = 'en';
+</script>
+
+<script src="/hs/hsstatic/cos-i18n/static-1.53/bundles/project.js"></script>
+<script src="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/191486630025/1779484514097/module_Announcement_Banner_-_FOR_TESTING.min.js"></script>
+<script src="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/175205469193/1781548471762/module_Navbar_-_Live.min.js"></script>
+<script src="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/196671359850/1770068412523/module_NETWORKS_Subnavbar.min.js"></script>
+<script src="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/196554394035/1764795281914/module_NETWORKS_Hero.min.js"></script>
+<script src="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/198675291681/1770040684514/module_NETWORKS_Contracts_-_Stellar.min.js"></script>
+<script src="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/198668066482/1769189681653/module_NETWORKS_Open_Source_Tools_-_Stellar.min.js"></script>
+<script src="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/196580421441/1777932051160/module_NETWORKS_Professional_Services.min.js"></script>
+<script src="https://www.openzeppelin.com/hubfs/hub_generated/module_assets/1/196573640991/1778084812780/module_NETWORKS_Carousel.min.js"></script>
+
+<!-- Start of HubSpot Analytics Code -->
+<script type="text/javascript">
+var _hsq = _hsq || [];
+_hsq.push(["setContentType", "standard-page"]);
+_hsq.push(["setCanonicalUrl", "https:\/\/www.openzeppelin.com\/networks\/stellar"]);
+_hsq.push(["setPageId", "198675399079"]);
+_hsq.push(["setContentMetadata", {
+    "contentPageId": 198675399079,
+    "legacyPageId": "198675399079",
+    "contentFolderId": null,
+    "contentGroupId": null,
+    "abTestId": null,
+    "languageVariantId": 198675399079,
+    "languageCode": "en",
+    
+    
+}]);
+</script>
+
+<script type="text/javascript" id="hs-script-loader" async defer src="/hs/scriptloader/7795250.js"></script>
+<!-- End of HubSpot Analytics Code -->
+
+
+<script type="text/javascript">
+var hsVars = {
+    render_id: "4e6a6dc0-39ce-4a9f-91fc-14c4c21b7207",
+    ticks: 1781615926320,
+    page_id: 198675399079,
+    
+    content_group_id: 0,
+    portal_id: 7795250,
+    app_hs_base_url: "https://app.hubspot.com",
+    cp_hs_base_url: "https://cp.hubspot.com",
+    language: "en",
+    analytics_page_type: "standard-page",
+    scp_content_type: "",
+    
+    analytics_page_id: "198675399079",
+    category_id: 1,
+    folder_id: 0,
+    is_hubspot_user: false
+}
+</script>
+
+
+<script defer src="/hs/hsstatic/HubspotToolsMenu/static-1.640/js/index.js"></script>
+
+<style>
+  /* Cookie consent Banner
+  */
+  div#hs-modal-header {
+    height: 0!important;
+  }
+  span.hs-always-active-label {
+    font-family: 'Inter'!important;
+  }
+  #hs-modal-content .hs-category-row:has(> .hs-category-row-header > #hs-category-advertisement) {
+    /*display: none;*/
+  }
+  #hs-eu-cookie-settings-button {
+    box-shadow: none!important;
+  }
+
+  #hs-eu-cookie-confirmation {
+    overflow: auto!important;
+    background: linear-gradient(white, white) padding-box, linear-gradient(to right, #4E5DE48B, #5D628500) border-box!important;
+    border: 1px solid transparent!important;
+  }
+
+  div#hs-eu-cookie-confirmation-inner {
+    padding: 16px!important;
+  }
+
+  div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner p {
+    font-family: 'Inter', sans-serif!important;
+    font-size: 12px!important;
+    font-style: normal!important;
+    font-weight: 400!important;
+    line-height: 144%!important;
+    max-width: 624px!important;
+  }
+  div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-cookie-settings-button {
+    font-family: 'Inter', sans-serif!important;
+    font-size: 13px!important;
+    line-height: 144%!important;
+    color: #4F5EE5!important;
+    font-weight: 400!important;
+    text-shadow: none!important;
+    letter-spacing: -0.01em!important;
+  }
+  div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-confirmation-button, div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-decline-button, 
+  #hs-modal #hs-modal-content #hs-modal-footer #hs-modal-footer-container button#hs-modal-accept-all, #hs-modal #hs-modal-content #hs-modal-footer #hs-modal-footer-container button#hs-modal-save-settings  {
+    padding: 5px 24px !important;
+    text-transform: none !important;
+    font-size: 14px !important;
+    box-shadow: none !important;
+    border-radius: 80px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    line-height: 20px !important;
+    color: white !important;
+    text-shadow: none !important;
+    letter-spacing: 0 !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease !important;
+    background: #4F56FA;
+    border: 1px solid transparent !important;
+    min-width: 100px;
+    height: auto!important;
+    margin: 0 5px !important;
+    flex: auto!important;
+  }
+  div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-confirmation-button:hover, #hs-modal #hs-modal-content #hs-modal-footer #hs-modal-footer-container button#hs-modal-accept-all:hover {
+    background: #4349D4 !important;
+  }
+  div#hs-eu-cookie-confirmation-buttons-area {
+    margin: 0!important;
+  }
+  div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-decline-button, #hs-modal #hs-modal-content #hs-modal-footer #hs-modal-footer-container button#hs-modal-save-settings {
+    border: 1px solid #EFEFEF!important;
+    background: #FAFAFA!important;
+    color: #0A0F39!important;
+  }
+  div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-decline-button:hover, #hs-modal #hs-modal-content #hs-modal-footer #hs-modal-footer-container button#hs-modal-save-settings:hover {
+    background: #ededed !important;
+  }
+  #hs-eu-cookie-confirmation #hs-eu-opt-in-buttons {
+    flex-grow: 1;
+    align-items: center!important;
+  }
+  div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner div#hs-eu-policy-wording {
+    margin-right: 0!important;
+  }
+
+
+
+  #hs-modal #hs-modal-content #hs-modal-header #hs-modal-header-container button#hs-modal-close-button {
+    box-shadow: none!important;
+  }
+  #hs-modal #hs-modal-content #hs-modal-body #hs-modal-body-container #hs-modal-introduction {
+    font-family: 'Inter', sans-serif!important;
+  }
+  #hs-modal #hs-modal-content #hs-modal-body #hs-modal-body-container #hs-categories-container .hs-category-row .hs-category-row-header .hs-category-label {
+    font-family: 'Inter',sans-serif!important;
+  }
+  #hs-modal #hs-modal-content a, #hs-modal #hs-modal-content p {
+    font-family: 'Inter', sans-serif!important;
+  }
+
+
+  @media (min-width: 751px){
+    #hs-eu-cookie-confirmation {
+      max-width: 656px!important;
+    }
+
+  }
+  @media (max-width: 750px){
+    div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-cookie-settings-button {
+      font-size: 12px!important;
+    }
+    div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-confirmation-button {
+      font-size: 12px!important;
+      padding: 6px 14px!important;
+      flex-basis: 33%;
+    }
+
+    div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-decline-button {
+      font-size: 12px!important;
+      padding: 6px 22px!important;
+      flex-basis: 33%;
+
+    }
+    #hs-eu-cookie-confirmation {
+      max-width: 100%!important;
+      width: calc(100% - 30px)!important;
+      margin-bottom: 10px!important;
+    }
+    div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner {
+      padding-bottom: 16px!important;
+    }
+    div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-cookie-settings-button {
+      padding-bottom: 8px!important;
+      border-bottom: none!important;
+    }
+    div#hs-eu-cookie-confirmation-buttons-area {
+      gap: 8px!important;
+      border-bottom: none!important;
+    }
+    div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner p {
+      font-size: 12px!important;
+    }
+    div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner button#hs-eu-confirmation-button {
+      margin: 0!important;
+    }
+  }
+</style>
+
+
+  
+</body></html>

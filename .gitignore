@@ -1,0 +1,40 @@
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secret*.txt
+
+# Rust / Soroban
+target/
+**/target/
+Cargo.lock.orig
+*.wasm
+!**/fixtures/**/*.wasm
+
+# RISC Zero
+guest/**/target/
+*.bin
+proof.txt
+receipt.json
+
+# Node / frontend
+node_modules/
+app/dist/
+app/.next/
+app/build/
+*.tsbuildinfo
+.vite/
+
+# Harvested reference repos (large; reference-only, not part of Ballast)
+research/github/
+research/_fetch.sh
+research/_index.tsv
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
