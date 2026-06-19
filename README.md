@@ -25,7 +25,8 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 | P3 | On-chain verification + attestation | ✅ deployed + initialized on testnet |
 | P4 | Enforcement + staleness | ✅ operator outflows gated; deployed on testnet |
 | P5 | Inclusion + public re-verification | ✅ client-side inclusion + chain-only re-verify |
-| P6–P10 | Features, frontend, hardening | 🚧 next |
+| P6 | Frontend (3 surfaces + tamper demo) | 🚧 public verifier, holder inclusion, issuer dashboard built |
+| P7–P10 | Features, hardening | ⬜ |
 
 ### Deployed (testnet)
 
@@ -46,11 +47,18 @@ Audit guest image id: `847c5e63c69a9daae262635168812aadc468c2783a5db9aa410749e0c
 
 ```
 contracts/   Soroban: vault (+ policy + verifier integration), partner-gate oracle
-guest/       RISC Zero zkVM audit program (Rust) + prover host/service
-app/         issuer dashboard, public verifier page, holder inclusion page
+guest/       RISC Zero zkVM audit program (Rust): core (sum-tree + inclusion), methods/guest, host, tools (ballast-inclusion CLI)
+app/         React + Vite frontend: public verifier, holder inclusion, issuer dashboard
 docs/        MASTER_SPEC, API_APPENDIX, FEATURES_ADDENDUM, FRONTEND_ATTACK_PLAN, build prompt
 research/    harvested source-of-truth corpus (RESEARCH_FULL.md; cloned repos gitignored)
 ```
+
+### Frontend (`app/`)
+
+`npm install && npm run dev` in `app/`. Three surfaces, all wired to the deployed testnet vault:
+- **Public verifier** — re-derives SOLVENT / STALE / INSOLVENT purely from chain reads (no server); shows the public/hidden split and the `liabilities_root`.
+- **Holder inclusion** — verifies your own leaf against the published root entirely in-browser (same SHA-256 sum-tree as `ballast-core`); leaf never leaves the device.
+- **Issuer dashboard** — wallet-connected reserve panel (deposit / gated `withdraw_operator`) + a synthetic-book → journal preview with a "hide the whale" tamper toggle that forces the predicted verdict to INSOLVENT. In-browser proving is **not** wired (labeled WIP): the real STARK→Groth16 proof runs in the operator's prover service.
 
 ## Confirmed environment facts ([corpus-verified])
 
