@@ -23,20 +23,22 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 | P1 | Vault custody + flow accounting | ✅ |
 | P2 | RISC Zero audit guest | ✅ real STARK proof end-to-end |
 | P3 | On-chain verification + attestation | ✅ deployed + initialized on testnet |
-| P4 | Enforcement + staleness | 🚧 next |
-| P5 | Inclusion + public re-verification | ⬜ |
+| P4 | Enforcement + staleness | ✅ operator outflows gated; deployed on testnet |
+| P5 | Inclusion + public re-verification | 🚧 next |
 | P6–P10 | Features, frontend, hardening | ⬜ |
 
 ### Deployed (testnet)
 
 | Contract | Address |
 |---|---|
-| Ballast vault | `CDDP43KRSIGN7DBK22IK32LO5CEWQE4TYDVTVYPDYW65UNPDDZ3CPVOS` |
+| Ballast vault | `CC2FR7RGP55JUI2NWZBYWSJOJ2WO3FCCXEL75VVSJBEHFEMWUZ32FY6N` |
 | risc0-verifier router | `CDLRCNMFXMNZIS3F4HCEGORXC4UM5XRAD7ZWBSWMDUAAZLRMVPQB2U4R` |
 | Router timelock | `CC6LR6L56FVVAFDABKHWP5EJP7S7CDUMA3SGXI4TAPPCWYCZYFJ6SU3J` |
 | Reserve asset (USDC SAC) | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` |
 
-Audit guest image id: `847c5e63c69a9daae262635168812aadc468c2783a5db9aa410749e0c94d5a6b`. Vault initialized in `AttestationOnly` mode (`min_ratio_bps=10000`, `max_staleness_ledgers=17280`); enforcement gating lands in P4.
+Audit guest image id: `847c5e63c69a9daae262635168812aadc468c2783a5db9aa410749e0c94d5a6b`. Vault initialized in `AttestationOnly` mode (`min_ratio_bps=10000`, `max_staleness_ledgers=17280`).
+
+**Enforcement (P4):** in `Enforced` mode, `withdraw_operator` is gated — it requires a solvency attestation that is *fresh* (within `max_staleness_ledgers`) and keeps `reserves_after ≥ net_custodied` (the on-chain custodied floor; `L` stays private, proven `L ≥ net_custodied`). Operator outflows never reduce `net_custodied`; user withdrawals are *never* gated. Admin can flip tiers via `set_mode`. Verified on testnet: flipping to `Enforced` with no fresh proof drives `max_operator_withdrawable` to 0.
 
 ## Repo layout
 

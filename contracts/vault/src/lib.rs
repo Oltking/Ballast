@@ -57,6 +57,14 @@ pub enum Error {
     RatioMismatch = 12,
     /// The proof's verdict is INSOLVENT (or a predicate failed).
     Insolvent = 13,
+    /// Operator outflow attempted in Enforced mode with no attestation on record.
+    NoAttestation = 14,
+    /// Operator outflow blocked: latest attestation older than `max_staleness_ledgers`.
+    StaleAttestation = 15,
+    /// Operator outflow would push reserves below the custodied floor.
+    SolvencyBreach = 16,
+    /// Operator outflow exceeds the vault's live reserve balance.
+    InsufficientReserves = 17,
 }
 
 // ----------------------------------------------------------------------------
@@ -172,7 +180,9 @@ pub struct Attested {
 pub enum DataKey {
     /// `Config`
     Config,
-    /// `i128` — running Σ(deposits) − Σ(all outflows).
+    /// `i128` — custodied floor = Σ(deposits) − Σ(user redemptions). Operator
+    /// outflows do **not** reduce it (they don't discharge user liabilities), so
+    /// it stays a valid lower bound on `L` for the enforcement gate.
     NetCustodied,
     /// `u32` — increments per accepted attestation (anti-replay).
     Epoch,
@@ -208,6 +218,18 @@ fn set_net_custodied(env: &Env, v: i128) {
 
 fn epoch(env: &Env) -> u32 {
     env.storage().instance().get(&DataKey::Epoch).unwrap_or(0)
+}
+
+/// True iff an attestation is on record and within `max_staleness_ledgers`.
+fn is_fresh(env: &Env, cfg: &Config) -> bool {
+    match env
+        .storage()
+        .instance()
+        .get::<_, Attestation>(&DataKey::LatestAttestation)
+    {
+        Some(att) => env.ledger().sequence().saturating_sub(att.ledger) <= cfg.max_staleness_ledgers,
+        None => false,
+    }
 }
 
 fn bump_instance(env: &Env) {
@@ -331,21 +353,50 @@ impl VaultContract {
     }
 
     /// Operator/fee/rehypothecation outflow — value leaving the vault that does
-    /// **not** reduce liabilities. This is the dangerous direction and is
-    /// **gated on a fresh solvency proof in P4**. In P1 it performs the
-    /// transfer + accounting only (gating not yet wired).
+    /// **not** reduce user liabilities (so it never changes `net_custodied`).
+    /// This is the dangerous direction and is **gated** in `Enforced` mode (P4):
+    ///
+    /// - a solvency attestation must be on record (`NoAttestation` otherwise),
+    /// - it must be **fresh** — within `max_staleness_ledgers` (`StaleAttestation`
+    ///   otherwise; a stale proof locks the operator, never users),
+    /// - and the outflow must keep `reserves_after >= net_custodied` (the
+    ///   custodied floor; `SolvencyBreach` otherwise).
+    ///
+    /// In `AttestationOnly` mode the outflow is recorded but never gated.
+    ///
+    /// Because `L` is private, the floor is `net_custodied` (proven `L >= net_custodied`),
+    /// not `L` itself: the operator can never drain reserves below the on-chain
+    /// custodied principal, and full `reserves >= L` is re-proven every staleness
+    /// window. The `net_custodied..L` gap (accrued interest) is the stated,
+    /// bounded trust window.
     pub fn withdraw_operator(env: Env, amount: i128) {
         let cfg = get_config(&env);
         cfg.operator.require_auth();
         require_positive(&env, amount);
 
-        // P4: gate on (mode == Enforced ⇒ fresh attestation AND reserves_after >= floor).
-
-        let nc = net_custodied(&env)
+        let live_reserves = token::TokenClient::new(&env, &cfg.reserve_token)
+            .balance(&env.current_contract_address());
+        let reserves_after = live_reserves
             .checked_sub(amount)
             .unwrap_or_else(|| panic_with(&env, Error::Overflow));
-        if nc < 0 {
-            panic_with(&env, Error::InsufficientCustodied);
+        if reserves_after < 0 {
+            panic_with(&env, Error::InsufficientReserves);
+        }
+
+        // P4 enforcement gate (operator-only; users are never gated).
+        if cfg.mode == Mode::Enforced {
+            let att = env
+                .storage()
+                .instance()
+                .get::<_, Attestation>(&DataKey::LatestAttestation)
+                .unwrap_or_else(|| panic_with(&env, Error::NoAttestation));
+            let age = env.ledger().sequence().saturating_sub(att.ledger);
+            if age > cfg.max_staleness_ledgers {
+                panic_with(&env, Error::StaleAttestation);
+            }
+            if reserves_after < net_custodied(&env) {
+                panic_with(&env, Error::SolvencyBreach);
+            }
         }
 
         token::TokenClient::new(&env, &cfg.reserve_token).transfer(
@@ -353,14 +404,47 @@ impl VaultContract {
             &cfg.operator,
             &amount,
         );
-        set_net_custodied(&env, nc);
         bump_instance(&env);
 
+        // `net_custodied` is unchanged by an operator outflow.
         WithdrawOperator {
             amount,
-            net_custodied: nc,
+            net_custodied: net_custodied(&env),
         }
         .publish(&env);
+    }
+
+    // ----- Admin setters (guarded; let the operator flip tiers / refresh config) -----
+
+    /// Switch enforcement tier. Lets an operator run `AttestationOnly` first,
+    /// then lock the vault by flipping to `Enforced`.
+    pub fn set_mode(env: Env, mode: Mode) {
+        let mut cfg = get_config(&env);
+        cfg.admin.require_auth();
+        cfg.mode = mode;
+        env.storage().instance().set(&DataKey::Config, &cfg);
+        bump_instance(&env);
+    }
+
+    /// Update the freshness window (ledgers).
+    pub fn set_max_staleness(env: Env, max_staleness_ledgers: u32) {
+        let mut cfg = get_config(&env);
+        cfg.admin.require_auth();
+        if max_staleness_ledgers == 0 {
+            panic_with(&env, Error::InvalidConfig);
+        }
+        cfg.max_staleness_ledgers = max_staleness_ledgers;
+        env.storage().instance().set(&DataKey::Config, &cfg);
+        bump_instance(&env);
+    }
+
+    /// Re-pin the trusted RISC Zero guest image id (e.g. after a guest upgrade).
+    pub fn set_image_id(env: Env, image_id: BytesN<32>) {
+        let mut cfg = get_config(&env);
+        cfg.admin.require_auth();
+        cfg.image_id = image_id;
+        env.storage().instance().set(&DataKey::Config, &cfg);
+        bump_instance(&env);
     }
 
     /// Verify a RISC Zero solvency proof and record the attestation.
@@ -465,6 +549,35 @@ impl VaultContract {
 
     pub fn net_custodied(env: Env) -> i128 {
         net_custodied(&env)
+    }
+
+    /// Whether the latest attestation is within the freshness window (`false` if
+    /// none). In `Enforced` mode, operator outflows are blocked while this is `false`.
+    pub fn attestation_fresh(env: Env) -> bool {
+        is_fresh(&env, &get_config(&env))
+    }
+
+    /// Maximum the operator could withdraw right now. `AttestationOnly`: the full
+    /// live reserve balance. `Enforced`: `reserves - net_custodied` while a fresh
+    /// proof is on record, else `0`. (Convenience for the operator dashboard.)
+    pub fn max_operator_withdrawable(env: Env) -> i128 {
+        let cfg = get_config(&env);
+        let live = token::TokenClient::new(&env, &cfg.reserve_token)
+            .balance(&env.current_contract_address());
+        match cfg.mode {
+            Mode::AttestationOnly => live,
+            Mode::Enforced => {
+                if !is_fresh(&env, &cfg) {
+                    return 0;
+                }
+                let floor = net_custodied(&env);
+                if live > floor {
+                    live - floor
+                } else {
+                    0
+                }
+            }
+        }
     }
 
     pub fn epoch(env: Env) -> u32 {
