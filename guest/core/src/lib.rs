@@ -115,6 +115,97 @@ pub fn build_sum_tree(leaves: &[Leaf]) -> ([u8; 32], u128) {
     level[0]
 }
 
+// ----------------------------------------------------------------------------
+// Inclusion proofs (P5) — client-side, privacy-preserving.
+//
+// A holder proves their own leaf is committed under the published
+// `liabilities_root` WITHOUT revealing the leaf to anyone: they recompute the
+// leaf hash from the (account, balance, salt) they alone hold and walk an
+// authentication path of *sibling* nodes up to the root. Because this is a
+// Merkle **sum** tree, each step also carries the sibling's sum so the parent
+// node hash `sha256(left || right || (left.sum+right.sum))` can be reproduced.
+// No leaf is ever submitted on-chain.
+// ----------------------------------------------------------------------------
+
+/// One step of an inclusion path: the sibling sum-tree node and which side the
+/// proven node sits on at this level.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PathStep {
+    pub sibling_hash: [u8; 32],
+    pub sibling_sum: u128,
+    /// `true` if the proven node is the LEFT child here (sibling on the right).
+    pub is_left: bool,
+}
+
+/// A self-contained inclusion proof for one leaf against a sum-tree root.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InclusionProof {
+    pub leaf: Leaf,
+    pub path: Vec<PathStep>,
+}
+
+/// Build an inclusion proof for the leaf at position `index` in `leaves`
+/// (pre-padding order). Returns `None` if `index` is out of range. The leaf set
+/// is padded to a power of two exactly as in [`build_sum_tree`], so the proof
+/// verifies against the same root.
+pub fn prove_inclusion(leaves: &[Leaf], index: usize) -> Option<InclusionProof> {
+    if index >= leaves.len() {
+        return None;
+    }
+    let leaf = leaves[index].clone();
+    let mut level: Vec<([u8; 32], u128)> = leaves
+        .iter()
+        .map(|l| (hash_leaf(l), u128::from(l.balance)))
+        .collect();
+    while level.len() < level.len().next_power_of_two() {
+        level.push((EMPTY_HASH, 0));
+    }
+    let mut idx = index;
+    let mut path = Vec::new();
+    while level.len() > 1 {
+        let is_left = idx % 2 == 0;
+        let sib = if is_left { idx + 1 } else { idx - 1 };
+        let (sibling_hash, sibling_sum) = level[sib];
+        path.push(PathStep {
+            sibling_hash,
+            sibling_sum,
+            is_left,
+        });
+        let mut next = Vec::with_capacity(level.len() / 2);
+        for pair in level.chunks(2) {
+            let (lh, ls) = pair[0];
+            let (rh, rs) = pair[1];
+            let sum = ls.checked_add(rs).expect("sum-tree total overflow");
+            next.push((hash_node(&lh, &rh, sum), sum));
+        }
+        level = next;
+        idx /= 2;
+    }
+    Some(InclusionProof { leaf, path })
+}
+
+/// Verify an inclusion proof against a published `root`. Recomputes the leaf
+/// hash from the holder's own (account, balance, salt) and folds the path to the
+/// root. Returns `true` iff the recomputed root matches — i.e. exactly this leaf
+/// (this balance, this salt) is part of the attested book.
+pub fn verify_inclusion(proof: &InclusionProof, root: &[u8; 32]) -> bool {
+    let mut h = hash_leaf(&proof.leaf);
+    let mut sum = u128::from(proof.leaf.balance);
+    for step in &proof.path {
+        let (lh, ls, rh, rs) = if step.is_left {
+            (h, sum, step.sibling_hash, step.sibling_sum)
+        } else {
+            (step.sibling_hash, step.sibling_sum, h, sum)
+        };
+        sum = match ls.checked_add(rs) {
+            Some(s) => s,
+            None => return false,
+        };
+        h = hash_node(&lh, &rh, sum);
+    }
+    &h == root
+}
+
 /// Run the solvency audit: compute the liabilities root + total `L`, then the
 /// two predicates. Returns `(outcome, L)`; `L` is for host debugging only and
 /// MUST NOT be committed to the journal.
@@ -275,5 +366,62 @@ mod tests {
         let (ra, _) = build_sum_tree(&a);
         let (rb, _) = build_sum_tree(&b);
         assert_ne!(ra, rb, "root must commit to the exact book");
+    }
+
+    // ----- P5: inclusion -----
+
+    #[test]
+    fn every_holder_can_prove_inclusion() {
+        // Odd count forces padding; check every real leaf verifies.
+        let book = vec![leaf(500_000, 1), leaf(300_000, 2), leaf(100_000, 3)];
+        let (root, _) = build_sum_tree(&book);
+        for i in 0..book.len() {
+            let proof = prove_inclusion(&book, i).unwrap();
+            assert!(verify_inclusion(&proof, &root), "leaf {i} must verify");
+            assert_eq!(proof.leaf, book[i]);
+        }
+    }
+
+    #[test]
+    fn inclusion_fails_against_wrong_root() {
+        let book = vec![leaf(500_000, 1), leaf(300_000, 2)];
+        let (_, _) = build_sum_tree(&book);
+        let other = vec![leaf(1, 9), leaf(2, 8)];
+        let (other_root, _) = build_sum_tree(&other);
+        let proof = prove_inclusion(&book, 0).unwrap();
+        assert!(!verify_inclusion(&proof, &other_root));
+    }
+
+    #[test]
+    fn tampered_balance_breaks_inclusion() {
+        let book = vec![leaf(500_000, 1), leaf(300_000, 2), leaf(100_000, 3)];
+        let (root, _) = build_sum_tree(&book);
+        let mut proof = prove_inclusion(&book, 1).unwrap();
+        proof.leaf.balance += 1; // holder claims a balance not in the committed book
+        assert!(!verify_inclusion(&proof, &root));
+    }
+
+    #[test]
+    fn wrong_salt_breaks_inclusion() {
+        let book = vec![leaf(500_000, 1), leaf(300_000, 2)];
+        let (root, _) = build_sum_tree(&book);
+        let mut proof = prove_inclusion(&book, 0).unwrap();
+        proof.leaf.salt[0] ^= 0xff;
+        assert!(!verify_inclusion(&proof, &root));
+    }
+
+    #[test]
+    fn single_leaf_inclusion() {
+        let book = vec![leaf(42, 7)];
+        let (root, l) = build_sum_tree(&book);
+        assert_eq!(l, 42);
+        let proof = prove_inclusion(&book, 0).unwrap();
+        assert!(verify_inclusion(&proof, &root));
+    }
+
+    #[test]
+    fn out_of_range_index_is_none() {
+        let book = vec![leaf(1, 1)];
+        assert!(prove_inclusion(&book, 1).is_none());
     }
 }

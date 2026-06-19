@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core", "host", "methods"]
+members = ["core", "host", "methods", "tools"]
 # methods/guest is intentionally NOT a member — it has its own [workspace] and is
 # compiled for the RISC-V guest target by risc0-build.
 

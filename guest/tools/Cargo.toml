@@ -1,0 +1,16 @@
+[package]
+name = "ballast-tools"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Ballast holder-side tools: Merkle sum-tree inclusion proofs (P5)"
+
+[[bin]]
+name = "ballast-inclusion"
+path = "src/main.rs"
+
+[dependencies]
+ballast-core = { path = "../core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hex = "0.4"

@@ -24,8 +24,8 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 | P2 | RISC Zero audit guest | ✅ real STARK proof end-to-end |
 | P3 | On-chain verification + attestation | ✅ deployed + initialized on testnet |
 | P4 | Enforcement + staleness | ✅ operator outflows gated; deployed on testnet |
-| P5 | Inclusion + public re-verification | 🚧 next |
-| P6–P10 | Features, frontend, hardening | ⬜ |
+| P5 | Inclusion + public re-verification | ✅ client-side inclusion + chain-only re-verify |
+| P6–P10 | Features, frontend, hardening | 🚧 next |
 
 ### Deployed (testnet)
 
@@ -39,6 +39,8 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 Audit guest image id: `847c5e63c69a9daae262635168812aadc468c2783a5db9aa410749e0c94d5a6b`. Vault initialized in `AttestationOnly` mode (`min_ratio_bps=10000`, `max_staleness_ledgers=17280`).
 
 **Enforcement (P4):** in `Enforced` mode, `withdraw_operator` is gated — it requires a solvency attestation that is *fresh* (within `max_staleness_ledgers`) and keeps `reserves_after ≥ net_custodied` (the on-chain custodied floor; `L` stays private, proven `L ≥ net_custodied`). Operator outflows never reduce `net_custodied`; user withdrawals are *never* gated. Admin can flip tiers via `set_mode`. Verified on testnet: flipping to `Enforced` with no fresh proof drives `max_operator_withdrawable` to 0.
+
+**Inclusion + public re-verification (P5):** a holder proves their own leaf is committed under the published `liabilities_root` entirely client-side, with the leaf never going on-chain — see `guest/tools` (`ballast-inclusion demo|prove|verify`), which uses the same `ballast-core` SHA-256 sum-tree as the guest. Anyone can re-derive the vault's SOLVENT/INSOLVENT verdict from chain reads alone via `scripts/wsl_public_verify.sh` (reads `latest_attestation` + live reserves/`net_custodied` and re-confirms the bound values). Populating a real attestation needs the Groth16 proving step below.
 
 ## Repo layout
 
