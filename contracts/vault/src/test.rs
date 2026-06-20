@@ -234,22 +234,18 @@ fn rejects_wrong_domain() {
 }
 
 #[test]
-#[should_panic(expected = "Error(Contract, #13)")] // Insolvent (reserves < L)
-fn rejects_insolvent_proof() {
+fn insolvent_proof_is_recorded_as_not_solvent() {
+    // F5: an insolvent proof is no longer rejected — it is recorded (solvent=false)
+    // and trips the breaker into WindDown.
     let s = setup();
     fund_vault(&s, 1_000_000);
     // L = 1_000_001 > reserves 1_000_000 → reserves_checked false → solvent false
-    let journal = make_journal(
-        &s.env,
-        &[1_000_001],
-        1_000_000,
-        1_000_000,
-        10_000,
-        1,
-        DOMAIN,
-    );
+    let journal = make_journal(&s.env, &[1_000_001], 1_000_000, 1_000_000, 10_000, 1, DOMAIN);
     let seal = Bytes::from_array(&s.env, &[1u8; 8]);
     s.vault.post_attestation(&journal, &seal);
+    assert!(!s.vault.latest_attestation().unwrap().solvent);
+    assert_eq!(s.vault.status(), Status::WindDown);
+    assert_eq!(s.vault.epoch(), 1);
 }
 
 #[test]
@@ -398,4 +394,129 @@ fn set_max_staleness_updates_config() {
     let s = setup();
     s.vault.set_max_staleness(&999u32);
     assert_eq!(s.vault.config().max_staleness_ledgers, 999);
+}
+
+// =================== F5: circuit-breaker + pro-rata exit ===================
+
+#[test]
+fn solvent_proof_keeps_healthy() {
+    let s = setup();
+    fund_vault(&s, 1_000_000);
+    assert_eq!(s.vault.status(), Status::Healthy);
+    let j = make_journal(&s.env, &[1_000_000], 1_000_000, 1_000_000, 10_000, 1, DOMAIN);
+    s.vault.post_attestation(&j, &Bytes::from_array(&s.env, &[1u8; 8]));
+    assert_eq!(s.vault.status(), Status::Healthy);
+}
+
+#[test]
+fn solvent_proof_recovers_from_winddown() {
+    let s = setup();
+    fund_vault(&s, 1_000_000);
+    // trip into wind-down with an insolvent proof (L > reserves)
+    let bad = make_journal(&s.env, &[1_000_001], 1_000_000, 1_000_000, 10_000, 1, DOMAIN);
+    s.vault.post_attestation(&bad, &Bytes::from_array(&s.env, &[1u8; 8]));
+    assert_eq!(s.vault.status(), Status::WindDown);
+    // a later solvent proof recovers to Healthy
+    let good = make_journal(&s.env, &[1_000_000], 1_000_000, 1_000_000, 10_000, 2, DOMAIN);
+    s.vault.post_attestation(&good, &Bytes::from_array(&s.env, &[1u8; 8]));
+    assert_eq!(s.vault.status(), Status::Healthy);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #18)")] // WindDownLocked
+fn winddown_hard_locks_operator() {
+    let s = setup(); // AttestationOnly — but wind-down locks regardless of mode
+    fund_vault(&s, 1_000_000);
+    let bad = make_journal(&s.env, &[1_000_001], 1_000_000, 1_000_000, 10_000, 1, DOMAIN);
+    s.vault.post_attestation(&bad, &Bytes::from_array(&s.env, &[1u8; 8]));
+    s.vault.withdraw_operator(&1);
+}
+
+#[test]
+fn winddown_user_withdrawal_is_pro_rata() {
+    let s = setup();
+    fund_vault(&s, 1_000_000); // nc = reserves = 1_000_000
+    s.vault.withdraw_operator(&400_000); // AttestationOnly: drain to reserves = 600_000
+    assert_eq!(s.vault.reserves(), 600_000);
+    // insolvent proof: reserves 600k < L 1_000_000 → wind-down
+    let bad = make_journal(&s.env, &[1_000_000], 600_000, 1_000_000, 10_000, 1, DOMAIN);
+    s.vault.post_attestation(&bad, &Bytes::from_array(&s.env, &[1u8; 8]));
+    assert_eq!(s.vault.status(), Status::WindDown);
+
+    // user redeems a 100_000 claim → pro-rata 600k * 100k / 1M = 60_000
+    let user = Address::generate(&s.env);
+    s.vault.withdraw_user(&user, &100_000);
+    assert_eq!(s.token.balance(&user), 60_000);
+    assert_eq!(s.vault.net_custodied(), 900_000);
+    // recovery ratio preserved for the rest: 540k / 900k == 600k / 1M
+    assert_eq!(s.vault.reserves(), 540_000);
+}
+
+#[test]
+fn check_breaker_trips_on_stale_enforced() {
+    let s = setup_enforced();
+    fund_vault(&s, 1_000_000);
+    add_excess_reserves(&s, 1);
+    s.env.ledger().set_sequence_number(100);
+    attest_solvent(&s, &[1_000_000], 1_000_001, 1_000_000, 1);
+    assert_eq!(s.vault.status(), Status::Healthy);
+    s.env.ledger().set_sequence_number(100 + 17_281); // stale
+    assert_eq!(s.vault.check_breaker(), Status::WindDown);
+}
+
+// =================== F3: composable solvency credential ===================
+
+#[test]
+fn require_fresh_attestation_passes_when_fresh_solvent() {
+    let s = setup();
+    fund_vault(&s, 1_000_000);
+    attest_solvent(&s, &[1_000_000], 1_000_000, 1_000_000, 1);
+    s.vault.require_fresh_attestation(&17_280u32); // no panic
+    let cred = s.vault.solvency_credential().unwrap();
+    assert!(cred.solvent);
+    assert_eq!(cred.ratio_bps, 10_000);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #19)")] // CredentialUnavailable
+fn require_fresh_attestation_traps_when_insolvent() {
+    let s = setup();
+    fund_vault(&s, 1_000_000);
+    let bad = make_journal(&s.env, &[1_000_001], 1_000_000, 1_000_000, 10_000, 1, DOMAIN);
+    s.vault.post_attestation(&bad, &Bytes::from_array(&s.env, &[1u8; 8]));
+    s.vault.require_fresh_attestation(&17_280u32);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #19)")] // CredentialUnavailable
+fn require_fresh_attestation_traps_when_too_old() {
+    let s = setup();
+    fund_vault(&s, 1_000_000);
+    s.env.ledger().set_sequence_number(100);
+    attest_solvent(&s, &[1_000_000], 1_000_000, 1_000_000, 1);
+    s.env.ledger().set_sequence_number(100 + 60);
+    s.vault.require_fresh_attestation(&50u32); // age 60 > 50
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #19)")] // CredentialUnavailable
+fn require_fresh_attestation_traps_with_no_credential() {
+    let s = setup();
+    s.vault.require_fresh_attestation(&17_280u32);
+}
+
+// =================== F4: margin history feed ===================
+
+#[test]
+fn history_accumulates_per_attestation() {
+    let s = setup();
+    fund_vault(&s, 1_000_000);
+    for epoch in 1..=3u32 {
+        attest_solvent(&s, &[1_000_000], 1_000_000, 1_000_000, epoch);
+    }
+    let hist = s.vault.attestation_history();
+    assert_eq!(hist.len(), 3);
+    assert_eq!(hist.get(0).unwrap().epoch, 1);
+    assert_eq!(hist.get(2).unwrap().epoch, 3);
+    assert!(hist.get(2).unwrap().solvent);
 }

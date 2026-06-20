@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   isEnforced,
+  isWindDown,
   loadVaultState,
   type VaultState,
 } from "../lib/stellar.ts";
 import { VAULT_ID, contractUrl } from "../lib/config.ts";
 import { bytesToHex, fmtAmount, fmtBps, shortId } from "../lib/format.ts";
+import MarginChart from "../components/MarginChart.tsx";
+import PartnerGate from "../components/PartnerGate.tsx";
 
 type Verdict = "solvent" | "stale" | "bad" | "idle";
 
@@ -103,6 +106,14 @@ export default function PublicVerifier() {
           </div>
         )}
 
+        {state && isWindDown(state.status) && (
+          <div className="banner mt" style={{ background: "var(--red-dim)", borderColor: "#6b2421", color: "var(--red)" }}>
+            🛑 <strong>Wind-down active.</strong> The circuit-breaker has fired: operator outflows are
+            hard-locked, and user redemptions pay out <strong>pro-rata</strong> against remaining
+            reserves. Users can still exit — no first-come bank run.
+          </div>
+        )}
+
         {state && (
           <div className="grid mt">
             <div className="stat">
@@ -191,6 +202,19 @@ export default function PublicVerifier() {
           )}
         </div>
       )}
+
+      {state && (
+        <div className="panel">
+          <h2>Solvency-margin history</h2>
+          <p className="sub">
+            Point-in-time proof-of-reserves becomes a monitored health feed — the trend that would
+            have flagged a custodian drifting toward insolvency before it failed.
+          </p>
+          <MarginChart points={state.history} />
+        </div>
+      )}
+
+      {state && <PartnerGate state={state} />}
 
       <p className="small muted center">
         Reads are simulated against the public RPC; the green state is the ledger's, not ours.

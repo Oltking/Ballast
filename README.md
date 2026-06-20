@@ -26,13 +26,14 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 | P4 | Enforcement + staleness | ✅ operator outflows gated; deployed on testnet |
 | P5 | Inclusion + public re-verification | ✅ client-side inclusion + chain-only re-verify |
 | P6 | Frontend (3 surfaces + tamper demo) | 🚧 public verifier, holder inclusion, issuer dashboard built |
-| P7–P10 | Features, hardening | ⬜ |
+| Features | F2 ratio · F3 credential/oracle · F4 margin feed · F5 breaker | ✅ contract + UI |
+| P7–P10 | Hardening, polish | ⬜ |
 
 ### Deployed (testnet)
 
 | Contract | Address |
 |---|---|
-| Ballast vault | `CC2FR7RGP55JUI2NWZBYWSJOJ2WO3FCCXEL75VVSJBEHFEMWUZ32FY6N` |
+| Ballast vault | `CCEAU43KHDUHF4CTLTJGTD4Y5ZHYW3CYFPWSHCZXP3WNLZILK4Q4DP65` |
 | risc0-verifier router | `CDLRCNMFXMNZIS3F4HCEGORXC4UM5XRAD7ZWBSWMDUAAZLRMVPQB2U4R` |
 | Router timelock | `CC6LR6L56FVVAFDABKHWP5EJP7S7CDUMA3SGXI4TAPPCWYCZYFJ6SU3J` |
 | Reserve asset (USDC SAC) | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` |
@@ -40,6 +41,12 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 Audit guest image id: `847c5e63c69a9daae262635168812aadc468c2783a5db9aa410749e0c94d5a6b`. Vault initialized in `AttestationOnly` mode (`min_ratio_bps=10000`, `max_staleness_ledgers=17280`).
 
 **Enforcement (P4):** in `Enforced` mode, `withdraw_operator` is gated — it requires a solvency attestation that is *fresh* (within `max_staleness_ledgers`) and keeps `reserves_after ≥ net_custodied` (the on-chain custodied floor; `L` stays private, proven `L ≥ net_custodied`). Operator outflows never reduce `net_custodied`; user withdrawals are *never* gated. Admin can flip tiers via `set_mode`. Verified on testnet: flipping to `Enforced` with no fresh proof drives `max_operator_withdrawable` to 0.
+
+**Features (F2–F5):**
+- **F2 — over-collateralization ratio:** the guest proves `reserves ≥ ratio·L` for a configurable `min_ratio_bps` (100% = 1:1; higher = buffer); shown as "proven backing ≥ X%".
+- **F3 — composable solvency credential + oracle:** a public `solvency_credential()` view, plus `require_fresh_attestation(max_age)` that other Soroban contracts call to gate their own logic — it traps against a stale/insolvent/wind-down custodian. The UI's "partner gate" mirrors this.
+- **F4 — solvency-margin history feed:** a bounded on-chain ring buffer of recent attestations; the public page renders the `reserves − net_custodied` trend with a danger line at zero.
+- **F5 — insolvency circuit-breaker + pro-rata exit:** an INSOLVENT proof (or, via `check_breaker`, a stale one in Enforced mode) trips the vault into `WindDown` — operator outflows hard-locked, while `withdraw_user` switches to pro-rata payouts (`amount · reserves / net_custodied`, ratio-preserving so there's no run advantage). A later solvent proof recovers to `Healthy`.
 
 **Inclusion + public re-verification (P5):** a holder proves their own leaf is committed under the published `liabilities_root` entirely client-side, with the leaf never going on-chain — see `guest/tools` (`ballast-inclusion demo|prove|verify`), which uses the same `ballast-core` SHA-256 sum-tree as the guest. Anyone can re-derive the vault's SOLVENT/INSOLVENT verdict from chain reads alone via `scripts/wsl_public_verify.sh` (reads `latest_attestation` + live reserves/`net_custodied` and re-confirms the bound values). Populating a real attestation needs the Groth16 proving step below.
 

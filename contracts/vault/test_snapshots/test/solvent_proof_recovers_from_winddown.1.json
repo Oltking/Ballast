@@ -95,30 +95,6 @@
     ],
     [
       [
-        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
-        {
-          "function": {
-            "contract_fn": {
-              "contract_address": "CDLDVFKHEZ2RVB3NG4UQA4VPD3TSHV6XMHXMHP2BSGCJ2IIWVTOHGDSG",
-              "function_name": "mint",
-              "args": [
-                {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
-                },
-                {
-                  "i128": "200000"
-                }
-              ]
-            }
-          },
-          "sub_invocations": []
-        }
-      ]
-    ],
-    [],
-    [],
-    [
-      [
         "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
         {
           "function": {
@@ -127,7 +103,7 @@
               "function_name": "post_attestation",
               "args": [
                 {
-                  "bytes": "38ddd0d249ab6987028eeeba30244ef40662a781672656fe0551f5a3175bbf19090909090909090909090909090909090909090909090909090909090909090900000000000000000000000000124f80000000000000000000000000000f42400000271000000001010101"
+                  "bytes": "744ed882d3716d11bba251df318d639be3d85ab8f94f1fa4bc56d5f493ac54340909090909090909090909090909090909090909090909090909090909090909000000000000000000000000000f4240000000000000000000000000000f42400000271000000001000100"
                 },
                 {
                   "bytes": "0101010101010101"
@@ -140,6 +116,28 @@
       ]
     ],
     [],
+    [
+      [
+        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
+        {
+          "function": {
+            "contract_fn": {
+              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
+              "function_name": "post_attestation",
+              "args": [
+                {
+                  "bytes": "38ddd0d249ab6987028eeeba30244ef40662a781672656fe0551f5a3175bbf190909090909090909090909090909090909090909090909090909090909090909000000000000000000000000000f4240000000000000000000000000000f42400000271000000002010101"
+                },
+                {
+                  "bytes": "0101010101010101"
+                }
+              ]
+            }
+          },
+          "sub_invocations": []
+        }
+      ]
+    ],
     []
   ],
   "ledger": {
@@ -225,26 +223,6 @@
               "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": {
                 "ledger_key_nonce": {
-                  "nonce": "4837995959683129791"
-                }
-              },
-              "durability": "temporary",
-              "val": "void"
-            }
-          },
-          "ext": "v0"
-        },
-        "live_until": 6311999
-      },
-      {
-        "entry": {
-          "last_modified_ledger_seq": 0,
-          "data": {
-            "contract_data": {
-              "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
-              "key": {
-                "ledger_key_nonce": {
                   "nonce": "5541220902715666415"
                 }
               },
@@ -266,6 +244,26 @@
               "key": {
                 "ledger_key_nonce": {
                   "nonce": "2032731177588607455"
+                }
+              },
+              "durability": "temporary",
+              "val": "void"
+            }
+          },
+          "ext": "v0"
+        },
+        "live_until": 6311999
+      },
+      {
+        "entry": {
+          "last_modified_ledger_seq": 0,
+          "data": {
+            "contract_data": {
+              "ext": "v0",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
+              "key": {
+                "ledger_key_nonce": {
+                  "nonce": "4837995959683129791"
                 }
               },
               "durability": "temporary",
@@ -366,7 +364,7 @@
                               "symbol": "mode"
                             },
                             "val": {
-                              "u32": 1
+                              "u32": 0
                             }
                           },
                           {
@@ -405,7 +403,7 @@
                         ]
                       },
                       "val": {
-                        "u32": 1
+                        "u32": 2
                       }
                     },
                     {
@@ -457,7 +455,59 @@
                                   "symbol": "reserves"
                                 },
                                 "val": {
-                                  "i128": "1200000"
+                                  "i128": "1000000"
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "solvent"
+                                },
+                                "val": {
+                                  "bool": false
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "map": [
+                              {
+                                "key": {
+                                  "symbol": "epoch"
+                                },
+                                "val": {
+                                  "u32": 2
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "ledger"
+                                },
+                                "val": {
+                                  "u32": 0
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "net_custodied"
+                                },
+                                "val": {
+                                  "i128": "1000000"
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "ratio_bps"
+                                },
+                                "val": {
+                                  "u32": 10000
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "reserves"
+                                },
+                                "val": {
+                                  "i128": "1000000"
                                 }
                               },
                               {
@@ -488,7 +538,7 @@
                               "symbol": "epoch"
                             },
                             "val": {
-                              "u32": 1
+                              "u32": 2
                             }
                           },
                           {
@@ -536,7 +586,7 @@
                               "symbol": "reserves"
                             },
                             "val": {
-                              "i128": "1200000"
+                              "i128": "1000000"
                             }
                           },
                           {
@@ -568,6 +618,18 @@
                       },
                       "val": {
                         "i128": "1000000"
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "Status"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "u32": 0
                       }
                     }
                   ]
@@ -656,7 +718,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "1200000"
+                      "i128": "1000000"
                     }
                   },
                   {

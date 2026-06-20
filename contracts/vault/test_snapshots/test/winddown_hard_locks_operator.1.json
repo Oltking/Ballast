@@ -95,30 +95,6 @@
     ],
     [
       [
-        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
-        {
-          "function": {
-            "contract_fn": {
-              "contract_address": "CDLDVFKHEZ2RVB3NG4UQA4VPD3TSHV6XMHXMHP2BSGCJ2IIWVTOHGDSG",
-              "function_name": "mint",
-              "args": [
-                {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
-                },
-                {
-                  "i128": "200000"
-                }
-              ]
-            }
-          },
-          "sub_invocations": []
-        }
-      ]
-    ],
-    [],
-    [],
-    [
-      [
         "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
         {
           "function": {
@@ -127,7 +103,7 @@
               "function_name": "post_attestation",
               "args": [
                 {
-                  "bytes": "38ddd0d249ab6987028eeeba30244ef40662a781672656fe0551f5a3175bbf19090909090909090909090909090909090909090909090909090909090909090900000000000000000000000000124f80000000000000000000000000000f42400000271000000001010101"
+                  "bytes": "744ed882d3716d11bba251df318d639be3d85ab8f94f1fa4bc56d5f493ac54340909090909090909090909090909090909090909090909090909090909090909000000000000000000000000000f4240000000000000000000000000000f42400000271000000001000100"
                 },
                 {
                   "bytes": "0101010101010101"
@@ -139,7 +115,6 @@
         }
       ]
     ],
-    [],
     []
   ],
   "ledger": {
@@ -225,26 +200,6 @@
               "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": {
                 "ledger_key_nonce": {
-                  "nonce": "4837995959683129791"
-                }
-              },
-              "durability": "temporary",
-              "val": "void"
-            }
-          },
-          "ext": "v0"
-        },
-        "live_until": 6311999
-      },
-      {
-        "entry": {
-          "last_modified_ledger_seq": 0,
-          "data": {
-            "contract_data": {
-              "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
-              "key": {
-                "ledger_key_nonce": {
                   "nonce": "5541220902715666415"
                 }
               },
@@ -265,7 +220,7 @@
               "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
               "key": {
                 "ledger_key_nonce": {
-                  "nonce": "2032731177588607455"
+                  "nonce": "4837995959683129791"
                 }
               },
               "durability": "temporary",
@@ -366,7 +321,7 @@
                               "symbol": "mode"
                             },
                             "val": {
-                              "u32": 1
+                              "u32": 0
                             }
                           },
                           {
@@ -457,7 +412,7 @@
                                   "symbol": "reserves"
                                 },
                                 "val": {
-                                  "i128": "1200000"
+                                  "i128": "1000000"
                                 }
                               },
                               {
@@ -465,7 +420,7 @@
                                   "symbol": "solvent"
                                 },
                                 "val": {
-                                  "bool": true
+                                  "bool": false
                                 }
                               }
                             ]
@@ -512,7 +467,7 @@
                               "symbol": "liabilities_root"
                             },
                             "val": {
-                              "bytes": "38ddd0d249ab6987028eeeba30244ef40662a781672656fe0551f5a3175bbf19"
+                              "bytes": "744ed882d3716d11bba251df318d639be3d85ab8f94f1fa4bc56d5f493ac5434"
                             }
                           },
                           {
@@ -536,7 +491,7 @@
                               "symbol": "reserves"
                             },
                             "val": {
-                              "i128": "1200000"
+                              "i128": "1000000"
                             }
                           },
                           {
@@ -544,7 +499,7 @@
                               "symbol": "reserves_checked"
                             },
                             "val": {
-                              "bool": true
+                              "bool": false
                             }
                           },
                           {
@@ -552,7 +507,7 @@
                               "symbol": "solvent"
                             },
                             "val": {
-                              "bool": true
+                              "bool": false
                             }
                           }
                         ]
@@ -568,6 +523,18 @@
                       },
                       "val": {
                         "i128": "1000000"
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "Status"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "u32": 1
                       }
                     }
                   ]
@@ -656,7 +623,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "1200000"
+                      "i128": "1000000"
                     }
                   },
                   {

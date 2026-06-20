@@ -5,7 +5,7 @@ import {
 
 const RPC_URL = "https://soroban-testnet.stellar.org";
 const PASS = "Test SDF Network ; September 2015";
-const VAULT = "CC2FR7RGP55JUI2NWZBYWSJOJ2WO3FCCXEL75VVSJBEHFEMWUZ32FY6N";
+const VAULT = "CCEAU43KHDUHF4CTLTJGTD4Y5ZHYW3CYFPWSHCZXP3WNLZILK4Q4DP65";
 const SRC = "GAKDJF75JLWEOGIUIHJLCZKL2IEHELKTVXOHD4L6AGHAQT4YZE4MWROT";
 const server = new rpc.Server(RPC_URL);
 
@@ -18,7 +18,7 @@ async function read(method) {
   return scValToNative(sim.result.retval);
 }
 
-for (const m of ["config", "reserves", "net_custodied", "epoch", "attestation_fresh", "max_operator_withdrawable", "latest_attestation"]) {
+for (const m of ["config", "reserves", "net_custodied", "epoch", "attestation_fresh", "max_operator_withdrawable", "latest_attestation", "status", "attestation_history", "solvency_credential"]) {
   const v = await read(m);
   console.log(m, "=>", typeof v === "object" ? JSON.stringify(v, (_, x) => typeof x === "bigint" ? x.toString() : x) : v);
 }

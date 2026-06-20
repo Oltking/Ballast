@@ -367,6 +367,71 @@
                       "key": {
                         "vec": [
                           {
+                            "symbol": "History"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "vec": [
+                          {
+                            "map": [
+                              {
+                                "key": {
+                                  "symbol": "epoch"
+                                },
+                                "val": {
+                                  "u32": 1
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "ledger"
+                                },
+                                "val": {
+                                  "u32": 0
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "net_custodied"
+                                },
+                                "val": {
+                                  "i128": "1000000"
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "ratio_bps"
+                                },
+                                "val": {
+                                  "u32": 10000
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "reserves"
+                                },
+                                "val": {
+                                  "i128": "1000000"
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "solvent"
+                                },
+                                "val": {
+                                  "bool": true
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
                             "symbol": "LatestAttestation"
                           }
                         ]

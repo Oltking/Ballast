@@ -23,7 +23,7 @@
 
 use soroban_sdk::{
     contract, contractclient, contractevent, contracterror, contractimpl, contracttype,
-    panic_with_error, token, Address, Bytes, BytesN, Env,
+    panic_with_error, token, Address, Bytes, BytesN, Env, Vec,
 };
 
 // ----------------------------------------------------------------------------
@@ -65,6 +65,10 @@ pub enum Error {
     SolvencyBreach = 16,
     /// Operator outflow exceeds the vault's live reserve balance.
     InsufficientReserves = 17,
+    /// Operator outflow attempted while the vault is in wind-down (F5).
+    WindDownLocked = 18,
+    /// `require_fresh_attestation`: no/stale/insolvent credential for a partner gate (F3).
+    CredentialUnavailable = 19,
 }
 
 // ----------------------------------------------------------------------------
@@ -78,6 +82,41 @@ pub enum Error {
 pub enum Mode {
     AttestationOnly = 0,
     Enforced = 1,
+}
+
+/// Operational status (F5 circuit-breaker). `WindDown` hard-locks operator
+/// outflows and switches user redemptions to pro-rata.
+#[contracttype]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum Status {
+    Healthy = 0,
+    WindDown = 1,
+}
+
+/// Public, third-party-readable solvency credential (F3). `L` stays private —
+/// `margin` here is the public lower bound `reserves - net_custodied`.
+#[contracttype]
+#[derive(Clone)]
+pub struct SolvencyCredential {
+    pub solvent: bool,
+    pub ratio_bps: u32,
+    pub epoch: u32,
+    pub ledger: u32,
+    pub margin: i128,
+    pub fresh: bool,
+    pub status: Status,
+}
+
+/// One point in the solvency-margin history feed (F4).
+#[contracttype]
+#[derive(Clone)]
+pub struct MarginPoint {
+    pub epoch: u32,
+    pub ledger: u32,
+    pub reserves: i128,
+    pub net_custodied: i128,
+    pub ratio_bps: u32,
+    pub solvent: bool,
 }
 
 /// Immutable-ish configuration set at initialization. `image_id`, `mode`,
@@ -176,6 +215,17 @@ pub struct Attested {
     pub ratio_bps: u32,
 }
 
+/// Emitted whenever operational status changes (F5).
+#[contractevent]
+#[derive(Clone)]
+pub struct StatusChanged {
+    pub healthy: bool,
+    pub epoch: u32,
+    pub ledger: u32,
+}
+
+const HISTORY_CAP: u32 = 16; // bounded ring buffer for the margin feed (F4)
+
 #[contracttype]
 pub enum DataKey {
     /// `Config`
@@ -188,6 +238,10 @@ pub enum DataKey {
     Epoch,
     /// `Attestation` — the most recent accepted attestation.
     LatestAttestation,
+    /// `Status` — operational status (F5).
+    Status,
+    /// `Vec<MarginPoint>` — bounded margin history feed (F4).
+    History,
 }
 
 // ----------------------------------------------------------------------------
@@ -230,6 +284,31 @@ fn is_fresh(env: &Env, cfg: &Config) -> bool {
         Some(att) => env.ledger().sequence().saturating_sub(att.ledger) <= cfg.max_staleness_ledgers,
         None => false,
     }
+}
+
+fn status(env: &Env) -> Status {
+    env.storage()
+        .instance()
+        .get(&DataKey::Status)
+        .unwrap_or(Status::Healthy)
+}
+
+fn set_status(env: &Env, s: Status) {
+    env.storage().instance().set(&DataKey::Status, &s);
+}
+
+/// Append a point to the bounded margin-history ring buffer (F4).
+fn push_history(env: &Env, point: MarginPoint) {
+    let mut hist: Vec<MarginPoint> = env
+        .storage()
+        .instance()
+        .get(&DataKey::History)
+        .unwrap_or_else(|| Vec::new(env));
+    if hist.len() >= HISTORY_CAP {
+        hist.remove(0);
+    }
+    hist.push_back(point);
+    env.storage().instance().set(&DataKey::History, &hist);
 }
 
 fn bump_instance(env: &Env) {
@@ -317,36 +396,58 @@ impl VaultContract {
         .publish(&env);
     }
 
-    /// Process a customer redemption (a payout to a user).
+    /// Process a customer redemption (a payout to a user), where `amount` is the
+    /// user's custodied claim being discharged.
     ///
     /// This reduces both reserves and the custodian's liabilities, so it is
-    /// **never gated** by solvency/staleness — users must always be able to
-    /// exit. In v1 normal operation, redemptions are operator-orchestrated
-    /// (per-user balances live in the operator's private book); the trustless
-    /// user-initiated exit is the WindDown pro-rata path (F5 / P7).
+    /// **never gated** by solvency/staleness — users must always be able to exit.
+    /// Redemptions are operator-orchestrated (per-user balances live in the
+    /// operator's private book).
+    ///
+    /// **F5 wind-down:** if the vault is in `WindDown`, the payout is pro-rated to
+    /// `amount * reserves / net_custodied`. Computing the haircut live preserves
+    /// the recovery ratio for every remaining user (no first-come run advantage):
+    /// after the payout, `reserves/net_custodied` is unchanged.
     pub fn withdraw_user(env: Env, to: Address, amount: i128) {
         let cfg = get_config(&env);
         cfg.operator.require_auth();
         require_positive(&env, amount);
 
-        let nc = net_custodied(&env)
+        let nc_before = net_custodied(&env);
+        let nc = nc_before
             .checked_sub(amount)
             .unwrap_or_else(|| panic_with(&env, Error::Overflow));
         if nc < 0 {
             panic_with(&env, Error::InsufficientCustodied);
         }
 
-        token::TokenClient::new(&env, &cfg.reserve_token).transfer(
-            &env.current_contract_address(),
-            &to,
-            &amount,
-        );
+        // Pro-rata haircut in wind-down; full payout when healthy.
+        let mut payout = amount;
+        if status(&env) == Status::WindDown && nc_before > 0 {
+            let live_reserves = token::TokenClient::new(&env, &cfg.reserve_token)
+                .balance(&env.current_contract_address());
+            if live_reserves < nc_before {
+                // reserves * amount / net_custodied  (i128 is ample for stroop ranges)
+                payout = live_reserves
+                    .checked_mul(amount)
+                    .unwrap_or_else(|| panic_with(&env, Error::Overflow))
+                    / nc_before;
+            }
+        }
+
+        if payout > 0 {
+            token::TokenClient::new(&env, &cfg.reserve_token).transfer(
+                &env.current_contract_address(),
+                &to,
+                &payout,
+            );
+        }
         set_net_custodied(&env, nc);
         bump_instance(&env);
 
         WithdrawUser {
             to,
-            amount,
+            amount: payout,
             net_custodied: nc,
         }
         .publish(&env);
@@ -381,6 +482,11 @@ impl VaultContract {
             .unwrap_or_else(|| panic_with(&env, Error::Overflow));
         if reserves_after < 0 {
             panic_with(&env, Error::InsufficientReserves);
+        }
+
+        // F5: wind-down hard-locks all operator outflows, regardless of mode.
+        if status(&env) == Status::WindDown {
+            panic_with(&env, Error::WindDownLocked);
         }
 
         // P4 enforcement gate (operator-only; users are never gated).
@@ -500,13 +606,11 @@ impl VaultContract {
             panic_with(&env, Error::RatioMismatch);
         }
 
-        // 4. Require a SOLVENT verdict. (P7/F5 will instead record INSOLVENT and
-        //    trigger wind-down; in P3 an insolvent proof is rejected.)
-        if !(solvent && reserves_checked && floor_checked) {
-            panic_with(&env, Error::Insolvent);
-        }
-
-        // 5. Record + bump epoch (anti-replay).
+        // 4. Record the (cryptographically valid, chain-bound) attestation —
+        //    whatever its verdict. The proof is real either way; the SOLVENT flag
+        //    drives the circuit-breaker (F5) rather than rejecting the proof, so
+        //    an honest INSOLVENT proof becomes a transparent, handled state.
+        let verdict_solvent = solvent && reserves_checked && floor_checked;
         let ledger = env.ledger().sequence();
         let attestation = Attestation {
             liabilities_root,
@@ -517,18 +621,45 @@ impl VaultContract {
             ledger,
             reserves_checked,
             floor_checked,
-            solvent,
+            solvent: verdict_solvent,
         };
         env.storage()
             .instance()
             .set(&DataKey::LatestAttestation, &attestation);
         env.storage().instance().set(&DataKey::Epoch, &j_epoch);
+
+        // 5. F4: append to the margin-history feed.
+        push_history(
+            &env,
+            MarginPoint {
+                epoch: j_epoch,
+                ledger,
+                reserves,
+                net_custodied: nc,
+                ratio_bps,
+                solvent: verdict_solvent,
+            },
+        );
+
+        // 6. F5: a solvent proof keeps/returns the vault to Healthy; an insolvent
+        //    one trips the breaker into WindDown.
+        let prev = status(&env);
+        let next = if verdict_solvent { Status::Healthy } else { Status::WindDown };
+        if next != prev {
+            set_status(&env, next);
+            StatusChanged {
+                healthy: verdict_solvent,
+                epoch: j_epoch,
+                ledger,
+            }
+            .publish(&env);
+        }
         bump_instance(&env);
 
         Attested {
             epoch: j_epoch,
             ledger,
-            solvent,
+            solvent: verdict_solvent,
             ratio_bps,
         }
         .publish(&env);
@@ -586,6 +717,82 @@ impl VaultContract {
 
     pub fn config(env: Env) -> Config {
         get_config(&env)
+    }
+
+    // ----- F5: status / circuit-breaker -----
+
+    /// Operational status: `Healthy` or `WindDown`.
+    pub fn status(env: Env) -> Status {
+        status(&env)
+    }
+
+    /// Permissionless: trip the breaker into `WindDown` if the vault is in
+    /// `Enforced` mode and its attestation has gone stale (F5 staleness path).
+    /// Anyone can call this so a custodian can't sit indefinitely on a lapsed
+    /// proof while reserves drift. Returns the resulting status.
+    pub fn check_breaker(env: Env) -> Status {
+        let cfg = get_config(&env);
+        if cfg.mode == Mode::Enforced
+            && status(&env) == Status::Healthy
+            && env.storage().instance().has(&DataKey::LatestAttestation)
+            && !is_fresh(&env, &cfg)
+        {
+            set_status(&env, Status::WindDown);
+            StatusChanged {
+                healthy: false,
+                epoch: epoch(&env),
+                ledger: env.ledger().sequence(),
+            }
+            .publish(&env);
+            bump_instance(&env);
+        }
+        status(&env)
+    }
+
+    // ----- F3: composable solvency credential + partner gate -----
+
+    /// Public solvency credential any third party can read.
+    pub fn solvency_credential(env: Env) -> Option<SolvencyCredential> {
+        let cfg = get_config(&env);
+        let att: Attestation = env.storage().instance().get(&DataKey::LatestAttestation)?;
+        let live = token::TokenClient::new(&env, &cfg.reserve_token)
+            .balance(&env.current_contract_address());
+        Some(SolvencyCredential {
+            solvent: att.solvent,
+            ratio_bps: att.ratio_bps,
+            epoch: att.epoch,
+            ledger: att.ledger,
+            margin: live - net_custodied(&env),
+            fresh: is_fresh(&env, &cfg),
+            status: status(&env),
+        })
+    }
+
+    /// Composability gate (F3): other Soroban contracts call this to require the
+    /// custodian is provably solvent **right now**. Traps unless an attestation
+    /// exists, is SOLVENT, is within `max_age` ledgers, and the vault is Healthy.
+    /// A partner contract that calls this will revert against a stale/insolvent
+    /// custodian — turning Ballast into infrastructure, not just an app.
+    pub fn require_fresh_attestation(env: Env, max_age: u32) {
+        let att: Attestation = env
+            .storage()
+            .instance()
+            .get(&DataKey::LatestAttestation)
+            .unwrap_or_else(|| panic_with(&env, Error::CredentialUnavailable));
+        let age = env.ledger().sequence().saturating_sub(att.ledger);
+        if !att.solvent || status(&env) == Status::WindDown || age > max_age {
+            panic_with(&env, Error::CredentialUnavailable);
+        }
+    }
+
+    // ----- F4: solvency-margin history feed -----
+
+    /// Bounded history of recent attestations (oldest first) for the trend chart.
+    pub fn attestation_history(env: Env) -> Vec<MarginPoint> {
+        env.storage()
+            .instance()
+            .get(&DataKey::History)
+            .unwrap_or_else(|| Vec::new(&env))
     }
 }
 

@@ -106,7 +106,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
                 },
                 {
-                  "i128": "200000"
+                  "i128": "1"
                 }
               ]
             }
@@ -115,8 +115,6 @@
         }
       ]
     ],
-    [],
-    [],
     [
       [
         "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
@@ -127,7 +125,7 @@
               "function_name": "post_attestation",
               "args": [
                 {
-                  "bytes": "38ddd0d249ab6987028eeeba30244ef40662a781672656fe0551f5a3175bbf19090909090909090909090909090909090909090909090909090909090909090900000000000000000000000000124f80000000000000000000000000000f42400000271000000001010101"
+                  "bytes": "38ddd0d249ab6987028eeeba30244ef40662a781672656fe0551f5a3175bbf190909090909090909090909090909090909090909090909090909090909090909000000000000000000000000000f4241000000000000000000000000000f42400000271000000001010101"
                 },
                 {
                   "bytes": "0101010101010101"
@@ -144,7 +142,7 @@
   ],
   "ledger": {
     "protocol_version": 26,
-    "sequence_number": 0,
+    "sequence_number": 17381,
     "timestamp": 0,
     "network_id": "0000000000000000000000000000000000000000000000000000000000000000",
     "base_reserve": 0,
@@ -274,7 +272,7 @@
           },
           "ext": "v0"
         },
-        "live_until": 6311999
+        "live_until": 6312099
       },
       {
         "entry": {
@@ -433,7 +431,7 @@
                                   "symbol": "ledger"
                                 },
                                 "val": {
-                                  "u32": 0
+                                  "u32": 100
                                 }
                               },
                               {
@@ -457,7 +455,7 @@
                                   "symbol": "reserves"
                                 },
                                 "val": {
-                                  "i128": "1200000"
+                                  "i128": "1000001"
                                 }
                               },
                               {
@@ -504,7 +502,7 @@
                               "symbol": "ledger"
                             },
                             "val": {
-                              "u32": 0
+                              "u32": 100
                             }
                           },
                           {
@@ -536,7 +534,7 @@
                               "symbol": "reserves"
                             },
                             "val": {
-                              "i128": "1200000"
+                              "i128": "1000001"
                             }
                           },
                           {
@@ -569,6 +567,18 @@
                       "val": {
                         "i128": "1000000"
                       }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "Status"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "u32": 1
+                      }
                     }
                   ]
                 }
@@ -577,7 +587,7 @@
           },
           "ext": "v0"
         },
-        "live_until": 518400
+        "live_until": 535781
       },
       {
         "entry": {
@@ -656,7 +666,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "1200000"
+                      "i128": "1000001"
                     }
                   },
                   {
@@ -798,9 +808,55 @@
           },
           "ext": "v0"
         },
-        "live_until": 518400
+        "live_until": 535781
       }
     ]
   },
-  "events": []
+  "events": [
+    {
+      "event": {
+        "ext": "v0",
+        "contract_id": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
+        "type_": "contract",
+        "body": {
+          "v0": {
+            "topics": [
+              {
+                "symbol": "status_changed"
+              }
+            ],
+            "data": {
+              "map": [
+                {
+                  "key": {
+                    "symbol": "epoch"
+                  },
+                  "val": {
+                    "u32": 1
+                  }
+                },
+                {
+                  "key": {
+                    "symbol": "healthy"
+                  },
+                  "val": {
+                    "bool": false
+                  }
+                },
+                {
+                  "key": {
+                    "symbol": "ledger"
+                  },
+                  "val": {
+                    "u32": 17381
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "failed_call": false
+    }
+  ]
 }

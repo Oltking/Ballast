@@ -71,6 +71,18 @@ export type VaultConfig = {
   domain: Uint8Array;
 };
 
+export type MarginPoint = {
+  epoch: number;
+  ledger: number;
+  reserves: bigint;
+  net_custodied: bigint;
+  ratio_bps: number;
+  solvent: boolean;
+};
+
+// 0 = Healthy, 1 = WindDown
+export type Status = number;
+
 export type VaultState = {
   config: VaultConfig;
   reserves: bigint;
@@ -79,8 +91,14 @@ export type VaultState = {
   attestation: Attestation | null;
   fresh: boolean;
   maxOperatorWithdrawable: bigint;
+  status: Status;
+  history: MarginPoint[];
   latestLedger: number;
 };
+
+export function isWindDown(s: Status): boolean {
+  return Number(s) === 1;
+}
 
 function modeNum(mode: VaultConfig["mode"]): number {
   if (typeof mode === "number") return mode;
@@ -94,7 +112,7 @@ export function isEnforced(cfg: VaultConfig): boolean {
 
 /** One round trip-ish snapshot of everything the public verifier needs. */
 export async function loadVaultState(): Promise<VaultState> {
-  const [config, reserves, netCustodied, epoch, attestation, fresh, maxW, ledger] =
+  const [config, reserves, netCustodied, epoch, attestation, fresh, maxW, status, history, ledger] =
     await Promise.all([
       readView("config") as Promise<VaultConfig>,
       readView("reserves") as Promise<bigint>,
@@ -103,6 +121,8 @@ export async function loadVaultState(): Promise<VaultState> {
       readView("latest_attestation") as Promise<Attestation | null>,
       readView("attestation_fresh") as Promise<boolean>,
       readView("max_operator_withdrawable") as Promise<bigint>,
+      readView("status") as Promise<number>,
+      readView("attestation_history") as Promise<MarginPoint[]>,
       server.getLatestLedger(),
     ]);
 
@@ -114,6 +134,12 @@ export async function loadVaultState(): Promise<VaultState> {
     attestation: attestation ?? null,
     fresh: Boolean(fresh),
     maxOperatorWithdrawable: BigInt(maxW ?? 0),
+    status: Number(status ?? 0),
+    history: (history ?? []).map((p) => ({
+      ...p,
+      reserves: BigInt(p.reserves),
+      net_custodied: BigInt(p.net_custodied),
+    })),
     latestLedger: ledger.sequence,
   };
 }
