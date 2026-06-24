@@ -12,7 +12,7 @@ import {
   ISSUER_KIND,
   ISSUER_INITIAL,
 } from "../lib/config.ts";
-import { bytesToHex, fmtAmount, fmtBps, shortId } from "../lib/format.ts";
+import { bytesToHex, errMsg, fmtAmount, fmtBps, shortId } from "../lib/format.ts";
 import MarginChart from "../components/MarginChart.tsx";
 import PartnerGate from "../components/PartnerGate.tsx";
 import CountUp from "../components/CountUp.tsx";
@@ -134,7 +134,7 @@ export default function PublicVerifier() {
     try {
       setState(await loadVaultState());
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errMsg(e));
     } finally {
       setLoading(false);
     }
