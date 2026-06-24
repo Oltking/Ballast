@@ -2,15 +2,27 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Address, nativeToScVal } from "@stellar/stellar-sdk";
 import {
   isEnforced,
+  isWindDown,
   loadVaultState,
   type VaultState,
 } from "../lib/stellar.ts";
-import { connectWallet, invoke } from "../lib/wallet.ts";
+import { addTrustline, connectWallet, invoke } from "../lib/wallet.ts";
+import { fundWithFriendbot, usdcReady, usdcStatus, type UsdcStatus } from "../lib/assets.ts";
 import { buildSumTree, hex, type Leaf } from "../lib/sumtree.ts";
-import { RESERVE_DECIMALS, txUrl } from "../lib/config.ts";
-import { bytesToHex, fmtAmount, fmtBps, shortHex } from "../lib/format.ts";
+import {
+  CIRCLE_FAUCET_URL,
+  ISSUER_INITIAL,
+  ISSUER_NAME,
+  RESERVE_DECIMALS,
+  USDC_CODE,
+  USDC_ISSUER,
+  txUrl,
+} from "../lib/config.ts";
+import { bytesToHex, errMsg, fmtAmount, fmtBps, shortHex } from "../lib/format.ts";
 import CountUp from "../components/CountUp.tsx";
 import Toggle from "../components/Toggle.tsx";
+import MarginChart from "../components/MarginChart.tsx";
+import UsdcOnboard from "../components/UsdcOnboard.tsx";
 
 function randomBytes(n: number): number[] {
   const b = new Uint8Array(n);
@@ -41,6 +53,7 @@ function toStroops(usdc: string): bigint {
 export default function IssuerDashboard() {
   const [addr, setAddr] = useState<string | null>(null);
   const [state, setState] = useState<VaultState | null>(null);
+  const [usdc, setUsdc] = useState<UsdcStatus | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [lastTx, setLastTx] = useState<string | null>(null);
@@ -58,7 +71,15 @@ export default function IssuerDashboard() {
     try {
       setState(await loadVaultState());
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(errMsg(e));
+    }
+  }, []);
+
+  const checkUsdc = useCallback(async (a: string) => {
+    try {
+      setUsdc(await usdcStatus(a));
+    } catch {
+      setUsdc(null);
     }
   }, []);
 
@@ -101,9 +122,11 @@ export default function IssuerDashboard() {
   async function connect() {
     setErr(null);
     try {
-      setAddr(await connectWallet());
+      const a = await connectWallet();
+      setAddr(a);
+      void checkUsdc(a);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(errMsg(e));
     }
   }
 
@@ -119,15 +142,57 @@ export default function IssuerDashboard() {
       const hash = await invoke(addr, method, args);
       setLastTx(hash);
       await refresh();
+      void checkUsdc(addr);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(errMsg(e));
     } finally {
       setBusy(null);
     }
   }
 
+  // ---- USDC onboarding actions (operator deposits USDC too) ----
+  async function fundXlm() {
+    if (!addr) return;
+    setBusy("fund");
+    setErr(null);
+    try {
+      await fundWithFriendbot(addr);
+      await checkUsdc(addr);
+    } catch (e) {
+      setErr(errMsg(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function addUsdcTrust() {
+    if (!addr) return;
+    setBusy("trust");
+    setErr(null);
+    setLastTx(null);
+    try {
+      const tx = await addTrustline(addr, USDC_CODE, USDC_ISSUER);
+      setLastTx(tx);
+      await checkUsdc(addr);
+    } catch (e) {
+      setErr(errMsg(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+  function openFaucet() {
+    if (addr) void navigator.clipboard?.writeText(addr).catch(() => {});
+    window.open(CIRCLE_FAUCET_URL, "_blank", "noopener,noreferrer");
+  }
+
   const enforced = state ? isEnforced(state.config) : false;
+  const windDown = state ? isWindDown(state.status) : false;
   const ratioBps = state?.config.min_ratio_bps ?? 10000;
+
+  // Role of the connected wallet relative to the vault config.
+  const isOperator = !!addr && !!state && addr === state.config.operator;
+  const isAdmin = !!addr && !!state && addr === state.config.admin;
+  const att = state?.attestation ?? null;
+  const attAge = state && att ? state.latestLedger - att.ledger : null;
 
   // Predicted verdict for the current book against live chain numbers.
   const predicted = useMemo(() => {
@@ -146,36 +211,60 @@ export default function IssuerDashboard() {
 
   return (
     <>
-      <div className="panel">
-        <div className="page-head">
-          <div>
-            <h2>Issuer dashboard</h2>
-            <p className="sub" style={{ marginBottom: 0 }}>
-              Operator console — load book → prove → publish, and manage reserves.
-            </p>
-          </div>
-          {addr ? (
-            <span className="wallet-chip">
-              <span className="wallet-dot" />
-              {shortHex(addr, 6, 6)}
-            </span>
-          ) : (
-            <button className="btn" onClick={() => void connect()}>
-              Connect wallet
-            </button>
-          )}
+      {/* header */}
+      <div className="page-head">
+        <div className="issuer-id" style={{ marginBottom: 0 }}>
+          <span className="issuer-logo">{ISSUER_INITIAL}</span>
+          <span className="issuer-meta">
+            <span className="issuer-name">{ISSUER_NAME}</span>
+            <br />
+            <span className="issuer-kind">operator console · Stellar testnet</span>
+          </span>
         </div>
-        {err && <div className="error">⚠ {err}</div>}
-        {lastTx && (
-          <div className="tx-ok">
-            ✓ submitted ·{" "}
-            <a href={txUrl(lastTx)} target="_blank" rel="noreferrer" className="mono">
-              {shortHex(lastTx, 10, 6)}
-            </a>
-          </div>
+        {addr ? (
+          <span className="wallet-chip">
+            <span className="wallet-dot" />
+            {shortHex(addr, 6, 6)}
+            {isAdmin && <span className="role-chip admin">admin</span>}
+            {isOperator && <span className="role-chip operator">operator</span>}
+            {!isAdmin && !isOperator && <span className="role-chip viewer">view-only</span>}
+          </span>
+        ) : (
+          <button className="btn" onClick={() => void connect()}>Connect wallet</button>
         )}
       </div>
 
+      {err && <div className="error">⚠ {err}</div>}
+      {lastTx && (
+        <div className="tx-ok">
+          ✓ submitted ·{" "}
+          <a href={txUrl(lastTx)} target="_blank" rel="noreferrer" className="mono">{shortHex(lastTx, 10, 6)}</a>
+        </div>
+      )}
+
+      {addr && !isOperator && !isAdmin && (
+        <div className="banner">
+          👀 <strong>View-only wallet.</strong> This account isn't the vault's operator or admin, so
+          reserve withdrawals and mode changes will revert on-chain. Deposits are open to anyone.
+          Connect the operator/admin wallet to manage the vault.
+        </div>
+      )}
+
+      {/* USDC onboarding (operator funds reserves in USDC) */}
+      {addr && usdc && !usdcReady(usdc) && (
+        <div className="panel">
+          <UsdcOnboard
+            usdc={usdc}
+            busy={busy}
+            onFund={() => void fundXlm()}
+            onTrust={() => void addUsdcTrust()}
+            onFaucet={openFaucet}
+            onRefresh={() => addr && void checkUsdc(addr)}
+          />
+        </div>
+      )}
+
+      {/* reserves */}
       <div className="panel">
         <h2>Reserves</h2>
         <p className="sub">Live on-chain state of the vault.</p>
@@ -209,15 +298,13 @@ export default function IssuerDashboard() {
               <div className="stat">
                 <div className="label">Mode</div>
                 <div className="value">
-                  <span className={`pill ${enforced ? "green" : "gray"}`}>
-                    {enforced ? "ENFORCED" : "ATTEST-ONLY"}
-                  </span>
+                  <span className={`pill ${enforced ? "green" : "gray"}`}>{enforced ? "ENFORCED" : "ATTEST-ONLY"}</span>
                 </div>
               </div>
               <div className="stat">
-                <div className="label">Epoch</div>
+                <div className="label">Status</div>
                 <div className="value">
-                  <CountUp to={state.epoch} render={(n) => Math.round(n).toString()} />
+                  <span className={`pill ${windDown ? "amber" : "green"}`}>{windDown ? "WIND-DOWN" : "HEALTHY"}</span>
                 </div>
               </div>
             </div>
@@ -240,7 +327,7 @@ export default function IssuerDashboard() {
         <div className="op-controls mt">
           <div className="op-control">
             <label className="field" style={{ marginBottom: 0 }}>
-              <span>Deposit USDC (user funds in)</span>
+              <span>Deposit USDC (reserves in)</span>
               <input type="text" value={depositAmt} onChange={(e) => setDepositAmt(e.target.value)} />
             </label>
             <button
@@ -264,6 +351,7 @@ export default function IssuerDashboard() {
             <button
               className="btn danger"
               disabled={!!busy || !addr}
+              title={!isOperator && addr ? "requires the operator wallet" : undefined}
               onClick={() =>
                 void doInvoke("withdraw", "withdraw_operator", [
                   nativeToScVal(toStroops(withdrawAmt), { type: "i128" }),
@@ -277,9 +365,97 @@ export default function IssuerDashboard() {
         <p className="small muted mt">
           In Enforced mode an over-floor or stale withdrawal <strong>reverts on-chain</strong> — that
           revert is the enforcement (no trusted signer could refuse the operator).
+          {!isOperator && addr && " Withdrawals need the operator wallet."}
         </p>
       </div>
 
+      {/* solvency proof status */}
+      <div className="panel">
+        <h2>Solvency proof</h2>
+        <p className="sub">The latest attestation posted on-chain, and whether it's still fresh.</p>
+        {!att ? (
+          <div className="banner">No attestation has been posted yet. Publish one from the proof below.</div>
+        ) : (
+          <>
+            <div className="grid">
+              <div className="stat">
+                <div className="label">Last verdict</div>
+                <div className="value">
+                  <span className={`pill ${att.solvent ? "green" : "red"}`}>{att.solvent ? "SOLVENT" : "INSOLVENT"}</span>
+                </div>
+              </div>
+              <div className="stat">
+                <div className="label">Freshness</div>
+                <div className="value">
+                  <span className={`pill ${state?.fresh ? "green" : "amber"}`}>{state?.fresh ? "FRESH" : "STALE"}</span>
+                </div>
+              </div>
+              <div className="stat">
+                <div className="label">Proof age</div>
+                <div className="value">{attAge != null ? `${attAge.toLocaleString()} ledgers` : "—"}</div>
+              </div>
+              <div className="stat">
+                <div className="label">Staleness window</div>
+                <div className="value">{state?.config.max_staleness_ledgers.toLocaleString()} ledgers</div>
+              </div>
+              <div className="stat">
+                <div className="label">Proven ratio</div>
+                <div className="value">{fmtBps(att.ratio_bps)}</div>
+              </div>
+              <div className="stat">
+                <div className="label">Min ratio (policy)</div>
+                <div className="value">{fmtBps(ratioBps)}</div>
+              </div>
+            </div>
+            <p className="small muted mt">
+              Attestation epoch {att.epoch}, ledger {att.ledger.toLocaleString()}. Staleness restricts the{" "}
+              <strong>operator only</strong> — user redemptions are never gated.
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* margin history (F4) */}
+      {state && state.history.length > 0 && (
+        <div className="panel">
+          <h2>Solvency-margin history</h2>
+          <p className="sub">Recent attestations — public lower bound <code>reserves − net_custodied</code>, danger line at zero.</p>
+          <MarginChart points={state.history} />
+        </div>
+      )}
+
+      {/* admin: mode control */}
+      <div className="panel">
+        <h2>Enforcement mode</h2>
+        <p className="sub">
+          <strong>Attest-only</strong> records proofs without gating. <strong>Enforced</strong> gates
+          operator outflows on a fresh, solvent proof and the on-chain floor. Admin-only.
+        </p>
+        <div className="op-control">
+          <div>
+            Currently:{" "}
+            <span className={`pill ${enforced ? "green" : "gray"}`}>{enforced ? "ENFORCED" : "ATTEST-ONLY"}</span>
+          </div>
+          <button
+            className="btn"
+            disabled={!!busy || !isAdmin}
+            title={!isAdmin ? "requires the admin wallet" : undefined}
+            onClick={() =>
+              void doInvoke("mode", "set_mode", [nativeToScVal(enforced ? 0 : 1, { type: "u32" })])
+            }
+          >
+            {busy === "mode" ? "…" : enforced ? "Switch to Attest-only" : "Switch to Enforced"}
+          </button>
+        </div>
+        {!isAdmin && (
+          <p className="small muted mt">
+            Connect the <strong>admin</strong> wallet to change the mode. With no fresh proof, flipping to
+            Enforced drives <em>operator withdrawable</em> to 0 — that's the enforcement in action.
+          </p>
+        )}
+      </div>
+
+      {/* book -> proof preview */}
       <div className="panel">
         <h2>Book → proof preview</h2>
         <p className="sub">
@@ -313,7 +489,6 @@ export default function IssuerDashboard() {
 
         {book.length > 0 && (
           <>
-            {/* the private book, visualized */}
             <div className="book-viz mt">
               {book.map((l, i) => {
                 const hidden = hideWhale && i === whaleIdx && book.length > 1;
@@ -372,9 +547,7 @@ export default function IssuerDashboard() {
               <div className={`verdict ${predicted.solvent ? "solvent" : "bad"} mt`}>
                 <div className="dot" />
                 <div>
-                  <div className="big">
-                    {predicted.solvent ? "WOULD PROVE SOLVENT" : "WOULD PROVE INSOLVENT"}
-                  </div>
+                  <div className="big">{predicted.solvent ? "WOULD PROVE SOLVENT" : "WOULD PROVE INSOLVENT"}</div>
                   <div className="note">
                     reserves ≥ ratio·L: {predicted.reservesOk ? "✓" : "✗"} &nbsp;·&nbsp; L ≥
                     net_custodied: {predicted.floorOk ? "✓" : "✗"}

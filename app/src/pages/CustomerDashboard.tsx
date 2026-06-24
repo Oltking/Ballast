@@ -7,7 +7,7 @@ import {
   type VaultState,
 } from "../lib/stellar.ts";
 import { addTrustline, connectWallet, invoke } from "../lib/wallet.ts";
-import { fundWithFriendbot, usdcStatus, type UsdcStatus } from "../lib/assets.ts";
+import { fundWithFriendbot, usdcReady, usdcStatus, type UsdcStatus } from "../lib/assets.ts";
 import {
   claimLeaf,
   fingerprintAndProof,
@@ -35,6 +35,7 @@ import { bytesToHex, errMsg, fmtAmount, shortHex } from "../lib/format.ts";
 import MerklePath from "../components/MerklePath.tsx";
 import CountUp from "../components/CountUp.tsx";
 import CopyId from "../components/CopyId.tsx";
+import UsdcOnboard from "../components/UsdcOnboard.tsx";
 
 type Counted = "yes" | "no" | null;
 
@@ -463,61 +464,16 @@ export default function CustomerDashboard() {
       </div>
 
       {/* get testnet USDC — onboarding helper */}
-      {!isDemo && usdc && !(usdc.funded && usdc.trustline && Number(usdc.balance) > 0) && (
+      {!isDemo && usdc && !usdcReady(usdc) && (
         <div className="panel">
-          <h2>Get testnet USDC</h2>
-          <p className="sub">
-            To deposit you need testnet USDC in your wallet. Three quick steps — all on Stellar
-            testnet, no real money involved.
-          </p>
-          <ol className="claim-steps">
-            <li className={usdc.funded ? "done" : "active"}>
-              <span className="claim-ic" aria-hidden="true">{usdc.funded ? "✓" : "1"}</span>
-              <div className="claim-body">
-                <div className="claim-title">Activate your account with testnet XLM</div>
-                <div className="claim-meta">
-                  {usdc.funded ? "Your account is active on the ledger." : "A fresh wallet needs XLM before it can hold assets."}
-                </div>
-                {!usdc.funded && (
-                  <button className="btn small" disabled={!!busy} onClick={() => void fundXlm()}>
-                    {busy === "fund" ? "Funding…" : "Fund with Friendbot"}
-                  </button>
-                )}
-              </div>
-            </li>
-            <li className={!usdc.funded ? "" : usdc.trustline ? "done" : "active"}>
-              <span className="claim-ic" aria-hidden="true">{usdc.trustline ? "✓" : "2"}</span>
-              <div className="claim-body">
-                <div className="claim-title">Add a USDC trustline</div>
-                <div className="claim-meta">
-                  {usdc.trustline ? "You can hold USDC." : "One-click — your wallet signs it. This lets you hold USDC."}
-                </div>
-                {usdc.funded && !usdc.trustline && (
-                  <button className="btn small" disabled={!!busy} onClick={() => void addUsdcTrust()}>
-                    {busy === "trust" ? "Signing…" : "Add USDC trustline"}
-                  </button>
-                )}
-              </div>
-            </li>
-            <li className={usdc.trustline ? "active" : ""}>
-              <span className="claim-ic" aria-hidden="true">{Number(usdc.balance) > 0 ? "✓" : "3"}</span>
-              <div className="claim-body">
-                <div className="claim-title">Claim USDC from Circle's faucet</div>
-                <div className="claim-meta">
-                  Circle issues this exact testnet USDC. We'll copy your address — paste it, pick
-                  <strong> Stellar testnet</strong>, and claim. Balance: <strong>{usdc.balance} USDC</strong>.
-                </div>
-                {usdc.trustline && (
-                  <div className="row">
-                    <button className="btn small" onClick={openFaucet}>Get USDC from Circle ↗</button>
-                    <button className="btn small secondary" disabled={!!busy} onClick={() => addr && void checkUsdc(addr)}>
-                      I've claimed — refresh
-                    </button>
-                  </div>
-                )}
-              </div>
-            </li>
-          </ol>
+          <UsdcOnboard
+            usdc={usdc}
+            busy={busy}
+            onFund={() => void fundXlm()}
+            onTrust={() => void addUsdcTrust()}
+            onFaucet={openFaucet}
+            onRefresh={() => addr && void checkUsdc(addr)}
+          />
         </div>
       )}
 

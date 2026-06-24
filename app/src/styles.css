@@ -462,6 +462,16 @@ footer.foot a { color: var(--muted); }
 .claim-meta { color: var(--muted); font-size: 13px; line-height: 1.45; }
 .btn.small { padding: 7px 13px; font-size: 13px; align-self: flex-start; }
 
+/* operator role chips */
+.role-chip {
+  display: inline-flex; align-items: center; margin-left: 8px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  border-radius: 999px; padding: 1px 7px; border: 1px solid transparent;
+}
+.role-chip.admin { color: var(--brand); background: rgba(14,165,160,0.12); border-color: var(--brand); }
+.role-chip.operator { color: var(--safe-deep); background: var(--safe-bg); border-color: var(--safe); }
+.role-chip.viewer { color: var(--muted); background: var(--surface-3); border-color: var(--border); }
+
 /* responsive */
 @media (max-width: 860px) {
   .promise, .steps, .holder-grid, .op-controls, .gate { grid-template-columns: 1fr; }

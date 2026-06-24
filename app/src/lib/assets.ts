@@ -14,6 +14,11 @@ export type UsdcStatus = {
   balance: string; // USDC balance, human units (e.g. "100.0000000")
 };
 
+/** Is this wallet ready to deposit — funded, trustlined, and holding USDC? */
+export function usdcReady(u: UsdcStatus | null): boolean {
+  return !!u && u.funded && u.trustline && Number(u.balance) > 0;
+}
+
 type CreditBalance = { asset_code?: string; asset_issuer?: string; balance: string };
 
 export async function usdcStatus(address: string): Promise<UsdcStatus> {
