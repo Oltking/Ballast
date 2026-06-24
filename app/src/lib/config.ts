@@ -22,8 +22,10 @@ export const USDC_ISSUER =
 // External faucets (Circle issues this exact testnet USDC; friendbot funds XLM).
 export const CIRCLE_FAUCET_URL = "https://faucet.circle.com/";
 export const FRIENDBOT_URL = "https://friendbot.stellar.org";
+// Guest program id the vault is pinned to (chain is source of truth — read from
+// the deployed vault's config.image_id). Re-pinned to the local Mac build.
 export const AUDIT_IMAGE_ID =
-  "847c5e63c69a9daae262635168812aadc468c2783a5db9aa410749e0c94d5a6b";
+  "de044c9b0cca5ebefaa13ac9a9b6290131db3c123db344cbee4a6480e2c7dd27";
 
 // Any existing account works as a read-only simulation source.
 export const SIM_SOURCE =

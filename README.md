@@ -38,7 +38,7 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 | Router timelock | `CC6LR6L56FVVAFDABKHWP5EJP7S7CDUMA3SGXI4TAPPCWYCZYFJ6SU3J` |
 | Reserve asset (USDC SAC) | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` |
 
-Audit guest image id: `847c5e63c69a9daae262635168812aadc468c2783a5db9aa410749e0c94d5a6b`. Vault initialized in `AttestationOnly` mode (`min_ratio_bps=10000`, `max_staleness_ledgers=17280`).
+Audit guest image id (current on-chain pin): `de044c9b0cca5ebefaa13ac9a9b6290131db3c123db344cbee4a6480e2c7dd27` — re-pinned via admin `set_image_id` to the local Mac build. Vault initialized in `AttestationOnly` mode (`min_ratio_bps=10000`, `max_staleness_ledgers=17280`).
 
 **Enforcement (P4):** in `Enforced` mode, `withdraw_operator` is gated — it requires a solvency attestation that is *fresh* (within `max_staleness_ledgers`) and keeps `reserves_after ≥ net_custodied` (the on-chain custodied floor; `L` stays private, proven `L ≥ net_custodied`). Operator outflows never reduce `net_custodied`; user withdrawals are *never* gated. Admin can flip tiers via `set_mode`. Verified on testnet: flipping to `Enforced` with no fresh proof drives `max_operator_withdrawable` to 0.
 
@@ -78,11 +78,11 @@ Polish baked in: light "financial-trust" design system, reduced-motion and keybo
 
 ## Current local state (honest WIP)
 
-Development moved from Windows/WSL to an Apple-silicon (M1) Mac. The toolchain is stood up and the guest builds and dev-mode-proves natively; the remaining gap before a **real** Groth16 attestation can be posted from this machine:
+Development moved from Windows/WSL to an Apple-silicon (M1) Mac. The architecture is complete and verified end-to-end *off*-chain (guest builds and dev-mode-proves natively; the vault's `post_attestation` cryptographically verifies the Groth16 seal via the deployed Nethermind router, traps on a bad proof, and binds the journal to live chain values — audited). **The one remaining gap before the first real attestation lands on-chain (the vault is currently at `epoch 0`, `latest_attestation = null`) is producing the Groth16 seal:**
 
-- **Groth16 wrap → Bonsai.** RISC Zero's STARK→Groth16 wrap needs x86_64 Linux + Docker, which is impractical on arm64. The chosen route is **Bonsai** remote proving (`BONSAI_API_KEY` + `BONSAI_API_URL`; `default_prover()` auto-routes). Key request pending — until then, on-chain attestations are populated by the local prover flow, not from the Mac.
-- **Guest image id.** Rebuilding the guest on a different toolchain/arch produces a **different** image id than the deployed pin (`847c5e63…`). To prove from this Mac, either reproduce the pinned build or re-pin the vault via admin `set_image_id` to the local build's id.
-- **Admin key.** The funded admin identity lives in the previous machine's `stellar` CLI config; it is **not** in this repo or `.env` (`SOURCE_ACCOUNT_SECRET` is intentionally empty). Admin-gated actions (`set_image_id`, `set_mode`, operator deposits) need it imported first — never commit or log it.
+- **Groth16 wrap → Bonsai (the only blocker).** RISC Zero's STARK→Groth16 wrap needs x86_64 Linux + Docker, impractical on arm64. The route is **Bonsai** remote proving (`BONSAI_API_KEY` + `BONSAI_API_URL`; `default_prover()` auto-routes from the Mac). Once a seal exists, posting is a single `post_attestation(journal, seal)` call — see `scripts/wsl_post_attestation.sh`.
+- **Guest image id.** ✅ Resolved — the vault is re-pinned via admin `set_image_id` to this Mac's local guest build (`de044c9b…`), so a proof produced here verifies against the pinned image.
+- **Admin/operator key.** ✅ Present — `GAKDJF75…` in `.env` is both `admin` and `operator` of the deployed vault, so deposits, `set_mode`, `set_image_id`, and `post_attestation` are all unblocked. Never commit or log the secret.
 
 ## Open decisions (need owner input)
 
