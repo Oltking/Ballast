@@ -263,6 +263,16 @@ fn rejects_when_verifier_rejects() {
 
 // Helper that builds a Setup around an already-created env + verifier address.
 fn setup_with_verifier_mode(env: Env, verifier: Address, mode: Mode) -> Setup<'static> {
+    setup_with_verifier_ratio(env, verifier, mode, 10_000)
+}
+
+// As above, but with a configurable over-collateralization ratio (F2).
+fn setup_with_verifier_ratio(
+    env: Env,
+    verifier: Address,
+    mode: Mode,
+    min_ratio_bps: u32,
+) -> Setup<'static> {
     let admin = Address::generate(&env);
     let operator = Address::generate(&env);
     let depositor = Address::generate(&env);
@@ -276,7 +286,7 @@ fn setup_with_verifier_mode(env: Env, verifier: Address, mode: Mode) -> Setup<'s
     let vault = VaultContractClient::new(&env, &vault_id);
     vault.initialize(
         &admin, &operator, &reserve_token, &verifier, &image_id, &mode, &17_280u32,
-        &10_000u32, &domain,
+        &min_ratio_bps, &domain,
     );
     Setup { env, vault, token, token_admin, operator, depositor }
 }
@@ -519,4 +529,121 @@ fn history_accumulates_per_attestation() {
     assert_eq!(hist.get(0).unwrap().epoch, 1);
     assert_eq!(hist.get(2).unwrap().epoch, 3);
     assert!(hist.get(2).unwrap().solvent);
+}
+
+// =================== additional negative-path coverage ===================
+
+#[test]
+#[should_panic(expected = "Error(Contract, #11)")] // NetCustodiedMismatch
+fn rejects_net_custodied_mismatch() {
+    // The journal's net_custodied must equal the on-chain custodied floor, or the
+    // proof isn't bound to live state (an operator can't prove against a stale floor).
+    let s = setup();
+    fund_vault(&s, 1_000_000); // on-chain net_custodied = 1_000_000
+    // reserves match, but journal claims net_custodied = 999_999
+    let journal = make_journal(&s.env, &[1_000_000], 1_000_000, 999_999, 10_000, 1, DOMAIN);
+    let seal = Bytes::from_array(&s.env, &[1u8; 8]);
+    s.vault.post_attestation(&journal, &seal);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #12)")] // RatioMismatch
+fn rejects_ratio_mismatch() {
+    // The journal's ratio_bps must equal the configured min_ratio_bps — otherwise
+    // an operator could post a proof at a weaker collateralization bar than the
+    // vault advertises.
+    let s = setup(); // configured min_ratio_bps = 10_000
+    fund_vault(&s, 1_000_000);
+    let journal = make_journal(&s.env, &[1_000_000], 1_000_000, 1_000_000, 9_000, 1, DOMAIN);
+    let seal = Bytes::from_array(&s.env, &[1u8; 8]);
+    s.vault.post_attestation(&journal, &seal);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #7)")] // BadJournal
+fn rejects_malformed_journal_length() {
+    // The verifier double accepts any seal, so this isolates the contract's own
+    // fixed-layout length check (a real verifier would reject a junk journal first).
+    let s = setup();
+    fund_vault(&s, 1_000_000);
+    let short = Bytes::from_array(&s.env, &[0u8; 10]); // not 107 bytes
+    let seal = Bytes::from_array(&s.env, &[1u8; 8]);
+    s.vault.post_attestation(&short, &seal);
+}
+
+// =================== F2: over-collateralization ratio (contract-level) ===================
+
+#[test]
+fn f2_ratio_buffer_forces_insolvent_at_1to1() {
+    // Vault requires 120% backing. A perfectly 1:1 book (reserves == L) clears the
+    // floor but fails the ratio bar, so it records INSOLVENT and trips wind-down.
+    let env = Env::default();
+    env.mock_all_auths();
+    let verifier = env.register(AcceptVerifier, ());
+    let s = setup_with_verifier_ratio(env, verifier, Mode::AttestationOnly, 12_000);
+    fund_vault(&s, 1_000_000); // reserves = net_custodied = 1_000_000
+    let journal = make_journal(&s.env, &[1_000_000], 1_000_000, 1_000_000, 12_000, 1, DOMAIN);
+    s.vault.post_attestation(&journal, &Bytes::from_array(&s.env, &[1u8; 8]));
+    let att = s.vault.latest_attestation().unwrap();
+    assert!(!att.reserves_checked, "1:1 must fail the 120% ratio check");
+    assert!(!att.solvent);
+    assert_eq!(s.vault.status(), Status::WindDown);
+}
+
+#[test]
+fn f2_ratio_satisfied_with_sufficient_buffer() {
+    // Same 120% vault, but reserves carry a 20% buffer over L → proves SOLVENT.
+    let env = Env::default();
+    env.mock_all_auths();
+    let verifier = env.register(AcceptVerifier, ());
+    let s = setup_with_verifier_ratio(env, verifier, Mode::AttestationOnly, 12_000);
+    fund_vault(&s, 1_000_000); // net_custodied = 1_000_000
+    add_excess_reserves(&s, 200_000); // reserves -> 1_200_000 (== 1.2 · L)
+    let journal = make_journal(&s.env, &[1_000_000], 1_200_000, 1_000_000, 12_000, 1, DOMAIN);
+    s.vault.post_attestation(&journal, &Bytes::from_array(&s.env, &[1u8; 8]));
+    let att = s.vault.latest_attestation().unwrap();
+    assert!(att.solvent);
+    assert_eq!(att.ratio_bps, 12_000);
+    assert_eq!(s.vault.status(), Status::Healthy);
+}
+
+// =================== admin / authorization ===================
+
+#[test]
+fn set_image_id_updates_pinned_guest() {
+    // Admin re-pins the audit-guest image id (e.g. after a reproducible rebuild).
+    let s = setup();
+    let new_id = BytesN::from_array(&s.env, &[7u8; 32]);
+    s.vault.set_image_id(&new_id);
+    assert_eq!(s.vault.config().image_id, new_id);
+}
+
+// Build a vault WITHOUT mocking auths, so require_auth() actually guards the call.
+fn setup_no_mocked_auth() -> Setup<'static> {
+    let env = Env::default();
+    let verifier = env.register(AcceptVerifier, ());
+    // note: no env.mock_all_auths()
+    setup_with_verifier_mode(env, verifier, Mode::AttestationOnly)
+}
+
+#[test]
+#[should_panic] // admin auth required
+fn set_mode_requires_admin_auth() {
+    let s = setup_no_mocked_auth();
+    s.vault.set_mode(&Mode::Enforced);
+}
+
+#[test]
+#[should_panic] // admin auth required
+fn set_image_id_requires_admin_auth() {
+    let s = setup_no_mocked_auth();
+    let new_id = BytesN::from_array(&s.env, &[7u8; 32]);
+    s.vault.set_image_id(&new_id);
+}
+
+#[test]
+#[should_panic] // operator auth required (require_auth runs before any balance check)
+fn withdraw_operator_requires_operator_auth() {
+    let s = setup_no_mocked_auth();
+    s.vault.withdraw_operator(&1);
 }
