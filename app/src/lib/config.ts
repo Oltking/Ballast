@@ -14,6 +14,14 @@ export const VERIFIER_ROUTER =
   "CDLRCNMFXMNZIS3F4HCEGORXC4UM5XRAD7ZWBSWMDUAAZLRMVPQB2U4R";
 export const USDC_SAC =
   "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
+// The classic asset the SAC wraps (Circle testnet USDC, home_domain centre.io).
+// Customers need a trustline to this asset + a balance before they can deposit.
+export const USDC_CODE = "USDC";
+export const USDC_ISSUER =
+  "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5";
+// External faucets (Circle issues this exact testnet USDC; friendbot funds XLM).
+export const CIRCLE_FAUCET_URL = "https://faucet.circle.com/";
+export const FRIENDBOT_URL = "https://friendbot.stellar.org";
 export const AUDIT_IMAGE_ID =
   "847c5e63c69a9daae262635168812aadc468c2783a5db9aa410749e0c94d5a6b";
 
@@ -23,6 +31,11 @@ export const SIM_SOURCE =
 
 // Reserve asset is shown with 7 decimals (Stellar stroops).
 export const RESERVE_DECIMALS = 7;
+
+// Friendly, consumer-facing identity for the custodian this vault represents.
+export const ISSUER_NAME = "Harbor USD";
+export const ISSUER_KIND = "USD stablecoin reserve · Stellar";
+export const ISSUER_INITIAL = "H";
 
 export function contractUrl(id: string): string {
   return `${EXPLORER}/contract/${id}`;
