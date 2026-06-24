@@ -7,15 +7,19 @@ import {
   FREIGHTER_ID,
 } from "@creit.tech/stellar-wallets-kit";
 import {
+  Asset,
   BASE_FEE,
   Contract,
+  Horizon,
+  Operation,
   TransactionBuilder,
   rpc,
   xdr,
 } from "@stellar/stellar-sdk";
-import { NETWORK_PASSPHRASE, RPC_URL, VAULT_ID } from "./config.ts";
+import { HORIZON_URL, NETWORK_PASSPHRASE, RPC_URL, VAULT_ID } from "./config.ts";
 
 const server = new rpc.Server(RPC_URL);
+const horizon = new Horizon.Server(HORIZON_URL);
 
 let kit: StellarWalletsKit | null = null;
 function getKit(): StellarWalletsKit {
@@ -45,6 +49,31 @@ export async function connectWallet(): Promise<string> {
   });
 }
 
+/** Add a classic trustline (e.g. USDC) so the wallet can hold the asset.
+ *  Builds a `changeTrust`, the wallet signs it, submitted via Horizon. */
+export async function addTrustline(
+  caller: string,
+  code: string,
+  issuer: string,
+): Promise<string> {
+  const account = await horizon.loadAccount(caller);
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(Operation.changeTrust({ asset: new Asset(code, issuer) }))
+    .setTimeout(60)
+    .build();
+
+  const { signedTxXdr } = await getKit().signTransaction(tx.toXDR(), {
+    address: caller,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  });
+  const signed = TransactionBuilder.fromXDR(signedTxXdr, NETWORK_PASSPHRASE);
+  const res = await horizon.submitTransaction(signed);
+  return res.hash;
+}
+
 /** Build → simulate/prepare → sign (wallet) → send → poll. Returns tx hash. */
 export async function invoke(
   caller: string,
@@ -61,6 +90,13 @@ export async function invoke(
     .addOperation(contract.call(method, ...args))
     .setTimeout(60)
     .build();
+
+  // Simulate first so a contract/host failure surfaces a readable diagnostic
+  // instead of an opaque object from prepareTransaction.
+  const sim = await server.simulateTransaction(built);
+  if (rpc.Api.isSimulationError(sim)) {
+    throw new Error(sim.error);
+  }
 
   const prepared = await server.prepareTransaction(built);
   const { signedTxXdr } = await getKit().signTransaction(prepared.toXDR(), {

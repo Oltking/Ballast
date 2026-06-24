@@ -1,14 +1,14 @@
 import { useState } from "react";
 import PublicVerifier from "./pages/PublicVerifier.tsx";
-import HolderInclusion from "./pages/HolderInclusion.tsx";
+import CustomerDashboard from "./pages/CustomerDashboard.tsx";
 import IssuerDashboard from "./pages/IssuerDashboard.tsx";
 
-type Tab = "verify" | "holder" | "issuer";
+type Tab = "verify" | "account" | "issuer";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "verify", label: "Public verifier" },
-  { id: "holder", label: "Holder inclusion" },
-  { id: "issuer", label: "Issuer dashboard" },
+  { id: "verify", label: "Is my money safe?" },
+  { id: "account", label: "My account" },
+  { id: "issuer", label: "For operators" },
 ];
 
 export default function App() {
@@ -18,25 +18,47 @@ export default function App() {
     <div className="app">
       <header className="top">
         <div className="brand">
-          <h1>⚓ Ballast</h1>
-          <span className="tag">solvency you can verify, not trust</span>
+          <h1>
+            <span className="mark">⚓</span>
+            Ballast
+          </h1>
+          <span className="tag">proof your money is backed</span>
         </div>
-        <nav className="tabs">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              className={tab === t.id ? "active" : ""}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span className="netchip">
+            <span className="live" />
+            Live · Stellar testnet
+          </span>
+          <nav className="tabs" aria-label="Sections">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                className={tab === t.id ? "active" : ""}
+                aria-current={tab === t.id ? "page" : undefined}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        </div>
       </header>
 
       {tab === "verify" && <PublicVerifier />}
-      {tab === "holder" && <HolderInclusion />}
+      {tab === "account" && <CustomerDashboard />}
       {tab === "issuer" && <IssuerDashboard />}
+
+      <footer className="foot">
+        <span>
+          Ballast independently checks that a custodian's reserves cover every customer — using a
+          zero-knowledge proof, so the private ledger stays private. Research prototype · testnet only.
+        </span>
+        <span>
+          <a href="https://stellar.org" target="_blank" rel="noreferrer">
+            Built on Stellar
+          </a>
+        </span>
+      </footer>
     </div>
   );
 }

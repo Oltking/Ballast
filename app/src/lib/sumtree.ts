@@ -122,6 +122,42 @@ export async function buildSumTree(
   return { root: level[0].hash, total: level[0].sum };
 }
 
+/** Generate the authentication path for leaf `index` (mirrors build_sum_tree's
+ *  power-of-two padding). The returned proof folds back to the tree root. */
+export async function proveInclusion(
+  leaves: Leaf[],
+  index: number,
+): Promise<InclusionProof> {
+  if (index < 0 || index >= leaves.length) throw new Error("index out of range");
+  let level: { hash: Uint8Array; sum: bigint }[] = [];
+  for (const l of leaves) {
+    level.push({ hash: await hashLeaf(l), sum: BigInt(l.balance) });
+  }
+  let n = 1;
+  while (n < level.length) n <<= 1;
+  while (level.length < n) level.push({ hash: EMPTY_HASH, sum: 0n });
+
+  const path: PathStep[] = [];
+  let idx = index;
+  while (level.length > 1) {
+    const sib = idx ^ 1;
+    const isLeft = idx % 2 === 0; // our running node is the left child
+    path.push({
+      sibling_hash: Array.from(level[sib].hash),
+      sibling_sum: level[sib].sum.toString(),
+      is_left: isLeft,
+    });
+    const next: { hash: Uint8Array; sum: bigint }[] = [];
+    for (let i = 0; i < level.length; i += 2) {
+      const sum = level[i].sum + level[i + 1].sum;
+      next.push({ hash: await sha256([level[i].hash, level[i + 1].hash, u128be(sum)]), sum });
+    }
+    level = next;
+    idx >>= 1;
+  }
+  return { leaf: leaves[index], path };
+}
+
 /** Fold the authentication path to a root and compare against `root`. */
 export async function verifyInclusion(
   proof: InclusionProof,
