@@ -7,7 +7,7 @@ export XDG_CONFIG_HOME=/mnt/c/Users/USER/.config
 export STELLAR_RPC_URL="https://soroban-testnet.stellar.org"
 export STELLAR_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
 
-V=${1:-CAWB5RDPTUSPQU4WSVWORKNBLHVCDQXRPPF7RYUR5UDVI6QMV6MWUD3I}
+V=${1:-CAULRHZ5WKYXHQJTF3BC3AV4QHOIEPDN5LIGDBWS6UOJ76YLLPT3VONR}
 PROOF=/mnt/c/Users/USER/oltking-project/stellar/proof_chain.txt
 
 JOURNAL=$(sed -n '1p' "$PROOF")

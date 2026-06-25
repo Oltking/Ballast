@@ -9,9 +9,9 @@ export const EXPLORER = "https://stellar.expert/explorer/testnet";
 
 // Deployed testnet contracts (see README "Deployed (testnet)").
 export const VAULT_ID =
-  "CAWB5RDPTUSPQU4WSVWORKNBLHVCDQXRPPF7RYUR5UDVI6QMV6MWUD3I";
+  "CAULRHZ5WKYXHQJTF3BC3AV4QHOIEPDN5LIGDBWS6UOJ76YLLPT3VONR";
 export const VERIFIER_ROUTER =
-  "CDLRCNMFXMNZIS3F4HCEGORXC4UM5XRAD7ZWBSWMDUAAZLRMVPQB2U4R";
+  "CCZ6SXH2FQ2CW3AIIUPHIKHXRJK5X55MTQS6P46MAPK7I6S4XIU6DOYF";
 export const USDC_SAC =
   "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
 // The classic asset the SAC wraps (Circle testnet USDC, home_domain centre.io).
@@ -25,7 +25,7 @@ export const FRIENDBOT_URL = "https://friendbot.stellar.org";
 // Guest program id the vault is pinned to (chain is source of truth — read from
 // the deployed vault's config.image_id). Re-pinned to the local Mac build.
 export const AUDIT_IMAGE_ID =
-  "de044c9b0cca5ebefaa13ac9a9b6290131db3c123db344cbee4a6480e2c7dd27";
+  "4711b310d51b710b9150d21b7dced6b9e8c566d45ce9b8e33047d87287b77bdf";
 
 // Any existing account works as a read-only simulation source.
 export const SIM_SOURCE =

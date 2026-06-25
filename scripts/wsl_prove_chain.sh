@@ -6,7 +6,7 @@ export RISC0_DEV_MODE=0
 # Talk to the WSL-native dockerd we started.
 export DOCKER_HOST=unix:///var/run/docker.sock
 
-DOMAIN=${DOMAIN:-2c1ec46f9d24f85396956ce8a9a159ea21c2f17bcbf8e291ed07547a0caf996a}
+DOMAIN=${DOMAIN:-28b89f3db2b173c1332ec22d82bc81dc823c6dead06186d2f51c9ffb0b5be7ba}
 RESERVES=${RESERVES:-0}
 NC=${NC:-0}
 EPOCH=${EPOCH:-1}
