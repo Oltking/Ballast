@@ -103,7 +103,20 @@ bold "=== prove (Groth16 — first run pulls the docker prover image; needs RAM)
 [ -s "$OUT" ] || die "prover produced no output ($OUT)."
 JOURNAL="$(sed -n '1p' "$OUT")"
 SEAL="$(sed -n '2p' "$OUT")"
-echo "journal hex chars=${#JOURNAL}  seal hex chars=${#SEAL}"
+IMAGE_ID="$(sed -n '3p' "$OUT")"
+echo "journal hex chars=${#JOURNAL}  seal hex chars=${#SEAL}  image_id=$IMAGE_ID"
+
+# ---- 2b. (optional) re-pin the vault to the freshly built image -------------
+# RISC Zero image ids aren't reproducible across toolchains, so a proof built
+# here may not match the deployed pin. With REPIN=1 (and an admin signer) we
+# re-pin to this build's image id so the proof always verifies. No-op if it
+# already matches. NOTE: if this changes the pin, update AUDIT_IMAGE_ID in
+# app/src/lib/config.ts to $IMAGE_ID afterwards.
+if [ "${REPIN:-0}" = "1" ]; then
+  bold "=== set_image_id (admin re-pin to $IMAGE_ID) ==="
+  stellar contract invoke --id "$VAULT" --source "$SOURCE" $NET --send=yes -- \
+    set_image_id --image_id "$IMAGE_ID"
+fi
 
 # ---- 3. post on-chain -------------------------------------------------------
 bold "=== post_attestation ==="
