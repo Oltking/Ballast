@@ -9,7 +9,7 @@ export const EXPLORER = "https://stellar.expert/explorer/testnet";
 
 // Deployed testnet contracts (see README "Deployed (testnet)").
 export const VAULT_ID =
-  "CCEAU43KHDUHF4CTLTJGTD4Y5ZHYW3CYFPWSHCZXP3WNLZILK4Q4DP65";
+  "CAWB5RDPTUSPQU4WSVWORKNBLHVCDQXRPPF7RYUR5UDVI6QMV6MWUD3I";
 export const VERIFIER_ROUTER =
   "CDLRCNMFXMNZIS3F4HCEGORXC4UM5XRAD7ZWBSWMDUAAZLRMVPQB2U4R";
 export const USDC_SAC =
@@ -29,7 +29,7 @@ export const AUDIT_IMAGE_ID =
 
 // Any existing account works as a read-only simulation source.
 export const SIM_SOURCE =
-  "GAKDJF75JLWEOGIUIHJLCZKL2IEHELKTVXOHD4L6AGHAQT4YZE4MWROT";
+  "GCPBZLNW2F2X3KQEILWRJRFBNSHFKWNY6GFSBCB4I624D2KVRY6P2JLQ";
 
 // Reserve asset is shown with 7 decimals (Stellar stroops).
 export const RESERVE_DECIMALS = 7;

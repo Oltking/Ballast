@@ -70,14 +70,14 @@ paste your **own** operator/admin secret where shown; never commit it:
 cat > .env <<'EOF'
 STELLAR_RPC_URL=https://soroban-testnet.stellar.org
 STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
-VAULT_CONTRACT_ID=CCEAU43KHDUHF4CTLTJGTD4Y5ZHYW3CYFPWSHCZXP3WNLZILK4Q4DP65
-VAULT_DOMAIN=880a736a38e872f0535cd2698f98ee4f8b6c582bed238b377eecd5e50b5721c1
+VAULT_CONTRACT_ID=CAWB5RDPTUSPQU4WSVWORKNBLHVCDQXRPPF7RYUR5UDVI6QMV6MWUD3I
+VAULT_DOMAIN=2c1ec46f9d24f85396956ce8a9a159ea21c2f17bcbf8e291ed07547a0caf996a
 SOURCE_ACCOUNT_SECRET=PASTE_YOUR_OPERATOR_SECRET_HERE
 EOF
 chmod 600 .env
 ```
 
-> The `SOURCE_ACCOUNT_SECRET` is the funded admin/operator key (`GAKDJF75…`).
+> The `SOURCE_ACCOUNT_SECRET` is the funded admin/operator key (`GCPBZLNW…`).
 > It's testnet-only, but still — that's why this is a **throwaway** box you
 > destroy in step 4.
 

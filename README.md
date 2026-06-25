@@ -33,7 +33,7 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 
 | Contract | Address |
 |---|---|
-| Ballast vault | `CCEAU43KHDUHF4CTLTJGTD4Y5ZHYW3CYFPWSHCZXP3WNLZILK4Q4DP65` |
+| Ballast vault | `CAWB5RDPTUSPQU4WSVWORKNBLHVCDQXRPPF7RYUR5UDVI6QMV6MWUD3I` |
 | risc0-verifier router | `CDLRCNMFXMNZIS3F4HCEGORXC4UM5XRAD7ZWBSWMDUAAZLRMVPQB2U4R` |
 | Router timelock | `CC6LR6L56FVVAFDABKHWP5EJP7S7CDUMA3SGXI4TAPPCWYCZYFJ6SU3J` |
 | Reserve asset (USDC SAC) | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` |
@@ -88,8 +88,9 @@ Development moved from Windows/WSL to an Apple-silicon (M1) Mac. The architectur
   ```
 
   It reads the live vault state, proves the guest, binds the journal to that state (domain / epoch+1 / reserves / net_custodied / ratio — the bindings `post_attestation` enforces), posts the seal with the operator key, and reads back the new `epoch`/`status`/`latest_attestation`. Heads-up: the snark wrap is RAM-hungry (~16 GB+). Do this **once** and the vault flips to `epoch 1` with a real, on-chain-verified attestation — after which the deployed frontend shows live verified data anywhere. **Step-by-step on a throwaway cloud VM: [`scripts/PROVE_ON_VM.md`](./scripts/PROVE_ON_VM.md).**
-- **Guest image id.** ✅ Resolved — the vault is re-pinned via admin `set_image_id` to this Mac's local guest build (`de044c9b…`), so a proof produced here verifies against the pinned image.
-- **Admin/operator key (action needed).** The account `GAKDJF75…` is both `admin` and `operator` of the deployed vault, but its **secret is not on this Mac** (`.env` `SOURCE_ACCOUNT_SECRET` is empty; no CLI identity here). It lives in the previous Windows/WSL machine's Stellar CLI identity `ballast-admin` — reveal it there with `stellar keys secret ballast-admin`, then supply it as the GitHub `SOURCE_ACCOUNT_SECRET` repo secret (or the VM's `.env`) to post. Never commit or log it.
+- **Admin/operator key.** ✅ Resolved by **redeploy.** The original deploy key was lost, so the vault was redeployed (`scripts/redeploy_vault.sh`) with a fresh admin/operator key we control (`GCPBZLNW…`, secret in `.env` + the `ballast-admin` Stellar CLI identity), reusing the same verifier router + USDC SAC. The current vault is **`CAWB5RDPTUSPQU4WSVWORKNBLHVCDQXRPPF7RYUR5UDVI6QMV6MWUD3I`** (see Deployed table). All admin/operator actions are now unblocked.
+- **Guest image id.** ✅ The vault is pinned to `de044c9b…`; the proving step also runs with `REPIN=1`, so it admin-re-pins to whatever image the proving host builds — the proof always verifies regardless of build host.
+- **Free way to produce the proof.** The repo ships a manual **GitHub Actions** workflow (`.github/workflows/prove-and-post.yml`) that runs the whole prove+post on a free x86_64 Linux runner — add the `SOURCE_ACCOUNT_SECRET` repo secret and click *Run workflow*. (16 GB runner may be tight; the 32 GB VM runbook above is the reliable fallback.)
 
 ## Open decisions (need owner input)
 

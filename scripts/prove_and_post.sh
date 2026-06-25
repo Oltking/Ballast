@@ -55,7 +55,7 @@ OUT="$ROOT/proof_chain.txt"
 export RISC0_DEV_MODE=0
 export PATH="$HOME/.cargo/bin:$HOME/.risc0/bin:$HOME/.local/bin:$PATH"
 
-NET="--rpc-url $STELLAR_RPC_URL --network-passphrase $STELLAR_NETWORK_PASSPHRASE"
+NET=(--rpc-url "$STELLAR_RPC_URL" --network-passphrase "$STELLAR_NETWORK_PASSPHRASE")
 
 bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 die()  { printf '\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
@@ -85,7 +85,7 @@ fi
 
 # ---- 1. read live vault state ----------------------------------------------
 bold "=== live vault state ($VAULT) ==="
-view() { stellar contract invoke --id "$VAULT" --source "$SOURCE" $NET -- "$1" 2>/dev/null | tr -d '"[:space:]'; }
+view() { stellar contract invoke --id "$VAULT" --source "$SOURCE" "${NET[@]}" -- "$1" 2>/dev/null | tr -d '"[:space:]'; }
 RESERVES="$(view reserves)"
 NC="$(view net_custodied)"
 EPOCH_NOW="$(view epoch)"
@@ -114,18 +114,18 @@ echo "journal hex chars=${#JOURNAL}  seal hex chars=${#SEAL}  image_id=$IMAGE_ID
 # app/src/lib/config.ts to $IMAGE_ID afterwards.
 if [ "${REPIN:-0}" = "1" ]; then
   bold "=== set_image_id (admin re-pin to $IMAGE_ID) ==="
-  stellar contract invoke --id "$VAULT" --source "$SOURCE" $NET --send=yes -- \
+  stellar contract invoke --id "$VAULT" --source "$SOURCE" "${NET[@]}" --send=yes -- \
     set_image_id --image_id "$IMAGE_ID"
 fi
 
 # ---- 3. post on-chain -------------------------------------------------------
 bold "=== post_attestation ==="
-stellar contract invoke --id "$VAULT" --source "$SOURCE" $NET --send=yes -- \
+stellar contract invoke --id "$VAULT" --source "$SOURCE" "${NET[@]}" --send=yes -- \
   post_attestation --journal "$JOURNAL" --seal "$SEAL"
 
 # ---- 4. read back -----------------------------------------------------------
 bold "=== read back ==="
 echo -n "epoch              = "; view epoch
-echo -n "status             = "; stellar contract invoke --id "$VAULT" --source "$SOURCE" $NET -- status 2>/dev/null
-echo -n "latest_attestation = "; stellar contract invoke --id "$VAULT" --source "$SOURCE" $NET -- latest_attestation 2>/dev/null
+echo -n "status             = "; stellar contract invoke --id "$VAULT" --source "$SOURCE" "${NET[@]}" -- status 2>/dev/null
+echo -n "latest_attestation = "; stellar contract invoke --id "$VAULT" --source "$SOURCE" "${NET[@]}" -- latest_attestation 2>/dev/null
 bold "PROVE_AND_POST_DONE — the vault now holds a real, on-chain-verified Groth16 attestation."
