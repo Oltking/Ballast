@@ -80,7 +80,14 @@ Polish baked in: light "financial-trust" design system, reduced-motion and keybo
 
 Development moved from Windows/WSL to an Apple-silicon (M1) Mac. The architecture is complete and verified end-to-end *off*-chain (guest builds and dev-mode-proves natively; the vault's `post_attestation` cryptographically verifies the Groth16 seal via the deployed Nethermind router, traps on a bad proof, and binds the journal to live chain values — audited). **The one remaining gap before the first real attestation lands on-chain (the vault is currently at `epoch 0`, `latest_attestation = null`) is producing the Groth16 seal:**
 
-- **Groth16 wrap → Bonsai (the only blocker).** RISC Zero's STARK→Groth16 wrap needs x86_64 Linux + Docker, impractical on arm64. The route is **Bonsai** remote proving (`BONSAI_API_KEY` + `BONSAI_API_URL`; `default_prover()` auto-routes from the Mac). Once a seal exists, posting is a single `post_attestation(journal, seal)` call — see `scripts/wsl_post_attestation.sh`.
+- **Groth16 wrap → any x86_64 Linux + Docker box (the only blocker).** RISC Zero's STARK→Groth16 wrap needs x86_64 Linux + Docker, impractical on arm64. This is a *hardware* limit, not a code one: the frontend (a static client-side SPA) never proves — proving is an off-chain operator job. Run it on **any x86_64 Linux host with Docker** (a cheap cloud VM, a Linux desktop, WSL, or a CI runner) and **no Bonsai is needed**; Bonsai is only the arm64 workaround. The whole flow is one command:
+
+  ```bash
+  # on an x86_64 Linux box with Docker + Rust + RISC Zero toolchain + stellar CLI:
+  ./scripts/prove_and_post.sh
+  ```
+
+  It reads the live vault state, proves the guest, binds the journal to that state (domain / epoch+1 / reserves / net_custodied / ratio — the bindings `post_attestation` enforces), posts the seal with the operator key, and reads back the new `epoch`/`status`/`latest_attestation`. Heads-up: the snark wrap is RAM-hungry (~16 GB+). Do this **once** and the vault flips to `epoch 1` with a real, on-chain-verified attestation — after which the deployed frontend shows live verified data anywhere.
 - **Guest image id.** ✅ Resolved — the vault is re-pinned via admin `set_image_id` to this Mac's local guest build (`de044c9b…`), so a proof produced here verifies against the pinned image.
 - **Admin/operator key.** ✅ Present — `GAKDJF75…` in `.env` is both `admin` and `operator` of the deployed vault, so deposits, `set_mode`, `set_image_id`, and `post_attestation` are all unblocked. Never commit or log the secret.
 
