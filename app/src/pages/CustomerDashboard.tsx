@@ -216,7 +216,14 @@ export default function CustomerDashboard() {
     try {
       const tx = await addTrustline(addr, USDC_CODE, USDC_ISSUER);
       setLastTx(tx);
-      await checkUsdc(addr);
+      // Horizon can lag a beat behind the ledger; poll until the new trustline
+      // shows up so the step reliably advances instead of looking stuck.
+      for (let i = 0; i < 6; i++) {
+        const st = await usdcStatus(addr);
+        setUsdc(st);
+        if (st.trustline) break;
+        await new Promise((r) => setTimeout(r, 1500));
+      }
     } catch (e) {
       setErr(errMsg(e));
     } finally {

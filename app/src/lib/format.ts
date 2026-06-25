@@ -62,6 +62,15 @@ export function errMsg(e: unknown): string {
   if (e instanceof Error) return prettify(e.message || e.toString());
   if (typeof e === "object") {
     const o = e as Record<string, unknown>;
+    // Horizon classic-tx failures: the real reason lives in result_codes.
+    const rc =
+      (e as any)?.response?.data?.extras?.result_codes ??
+      (e as any)?.data?.extras?.result_codes;
+    if (rc) {
+      const ops = Array.isArray(rc.operations) ? rc.operations.filter(Boolean).join(", ") : "";
+      const detail = [rc.transaction, ops].filter(Boolean).join(" / ");
+      if (detail) return prettify(detail);
+    }
     // common nesting from stellar-sdk / wallets-kit
     for (const k of ["message", "error", "detail", "title"]) {
       const v = o[k];
@@ -85,6 +94,14 @@ export function errMsg(e: unknown): string {
 }
 
 function prettify(raw: string): string {
+  // Common classic-transaction (Horizon) result codes → plain English.
+  if (/op_low_reserve/i.test(raw)) return "not enough XLM to cover the trustline reserve — fund the account with testnet XLM first.";
+  if (/tx_bad_seq/i.test(raw)) return "transaction sequence was out of date — please try again.";
+  if (/tx_insufficient_fee/i.test(raw)) return "network fee was too low — please try again.";
+  if (/op_no_issuer/i.test(raw)) return "the USDC issuer account wasn't found on this network.";
+  if (/op_already_exist|already.*trust/i.test(raw)) return "the trustline already exists — you're set.";
+  if (/tx_bad_auth|op_bad_auth/i.test(raw)) return "the signature didn't match this account — make sure your wallet is on the same account you connected.";
+  if (/tx_no_source_account|op_no_source/i.test(raw)) return "the account isn't activated yet — fund it with testnet XLM first.";
   // Token transfer / trustline issues are the usual deposit failure — check
   // these before the contract-code map so a SAC error isn't mislabeled.
   if (/trustline|trust line|no trust|missing.*trustline/i.test(raw))

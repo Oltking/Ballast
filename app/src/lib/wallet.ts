@@ -58,11 +58,11 @@ export async function addTrustline(
 ): Promise<string> {
   const account = await horizon.loadAccount(caller);
   const tx = new TransactionBuilder(account, {
-    fee: BASE_FEE,
+    fee: "100000", // 0.01 XLM — comfortably above the classic base fee / any surge
     networkPassphrase: NETWORK_PASSPHRASE,
   })
     .addOperation(Operation.changeTrust({ asset: new Asset(code, issuer) }))
-    .setTimeout(60)
+    .setTimeout(120)
     .build();
 
   const { signedTxXdr } = await getKit().signTransaction(tx.toXDR(), {
