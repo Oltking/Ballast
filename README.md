@@ -87,7 +87,7 @@ Development moved from Windows/WSL to an Apple-silicon (M1) Mac. The architectur
   ./scripts/prove_and_post.sh
   ```
 
-  It reads the live vault state, proves the guest, binds the journal to that state (domain / epoch+1 / reserves / net_custodied / ratio — the bindings `post_attestation` enforces), posts the seal with the operator key, and reads back the new `epoch`/`status`/`latest_attestation`. Heads-up: the snark wrap is RAM-hungry (~16 GB+). Do this **once** and the vault flips to `epoch 1` with a real, on-chain-verified attestation — after which the deployed frontend shows live verified data anywhere.
+  It reads the live vault state, proves the guest, binds the journal to that state (domain / epoch+1 / reserves / net_custodied / ratio — the bindings `post_attestation` enforces), posts the seal with the operator key, and reads back the new `epoch`/`status`/`latest_attestation`. Heads-up: the snark wrap is RAM-hungry (~16 GB+). Do this **once** and the vault flips to `epoch 1` with a real, on-chain-verified attestation — after which the deployed frontend shows live verified data anywhere. **Step-by-step on a throwaway cloud VM: [`scripts/PROVE_ON_VM.md`](./scripts/PROVE_ON_VM.md).**
 - **Guest image id.** ✅ Resolved — the vault is re-pinned via admin `set_image_id` to this Mac's local guest build (`de044c9b…`), so a proof produced here verifies against the pinned image.
 - **Admin/operator key.** ✅ Present — `GAKDJF75…` in `.env` is both `admin` and `operator` of the deployed vault, so deposits, `set_mode`, `set_image_id`, and `post_attestation` are all unblocked. Never commit or log the secret.
 
