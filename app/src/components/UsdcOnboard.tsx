@@ -8,6 +8,7 @@ import type { UsdcStatus } from "../lib/assets.ts";
 export default function UsdcOnboard({
   usdc,
   busy,
+  waiting = false,
   onFund,
   onTrust,
   onFaucet,
@@ -15,6 +16,7 @@ export default function UsdcOnboard({
 }: {
   usdc: UsdcStatus;
   busy: string | null;
+  waiting?: boolean;
   onFund: () => void;
   onTrust: () => void;
   onFaucet: () => void;
@@ -70,12 +72,20 @@ export default function UsdcOnboard({
               <strong> Stellar testnet</strong>, and claim. Balance: <strong>{usdc.balance} USDC</strong>.
             </div>
             {usdc.trustline && (
-              <div className="row">
-                <button className="btn small" onClick={onFaucet}>Get USDC from Circle ↗</button>
-                <button className="btn small secondary" disabled={!!busy} onClick={onRefresh}>
-                  I've claimed — refresh
-                </button>
-              </div>
+              <>
+                <div className="row">
+                  <button className="btn small" onClick={onFaucet}>Get USDC from Circle ↗</button>
+                  <button className="btn small secondary" disabled={!!busy} onClick={onRefresh}>
+                    I've claimed — refresh
+                  </button>
+                </div>
+                {waiting && !hasUsdc && (
+                  <div className="claim-waiting">
+                    <span className="spin" aria-hidden="true" /> Waiting for your USDC to arrive —
+                    this picks up automatically the moment it lands (or hit refresh).
+                  </div>
+                )}
+              </>
             )}
           </div>
         </li>

@@ -86,6 +86,7 @@ export default function CustomerDashboard() {
   const [syncing, setSyncing] = useState(false);
 
   const [usdc, setUsdc] = useState<UsdcStatus | null>(null);
+  const [waitingForUsdc, setWaitingForUsdc] = useState(false);
 
   // Check whether this wallet is XLM-funded, holds a USDC trustline, and its
   // balance — so we can guide the user to claim test USDC before depositing.
@@ -136,6 +137,28 @@ export default function CustomerDashboard() {
     if (!isDemo) void checkUsdc(addr);
   }, [addr, isDemo, recompute, refreshVault, syncChain, checkUsdc]);
 
+  // After sending the user to the external faucet, auto-resume the flow: poll
+  // for the USDC and re-check whenever they return to this tab, so the moment
+  // it lands the onboarding advances on its own — no manual refresh needed.
+  useEffect(() => {
+    if (!waitingForUsdc || !addr || isDemo) return;
+    if (usdc && usdcReady(usdc)) {
+      setWaitingForUsdc(false);
+      return;
+    }
+    const recheck = () => {
+      if (document.visibilityState === "visible") void checkUsdc(addr);
+    };
+    const id = window.setInterval(recheck, 6000);
+    window.addEventListener("focus", recheck);
+    document.addEventListener("visibilitychange", recheck);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("focus", recheck);
+      document.removeEventListener("visibilitychange", recheck);
+    };
+  }, [waitingForUsdc, addr, isDemo, usdc, checkUsdc]);
+
   function beginDemo() {
     setErr(null);
     setIsDemo(true);
@@ -162,6 +185,8 @@ export default function CustomerDashboard() {
     setLastTx(null);
     setIsDemo(false);
     setChain([]);
+    setUsdc(null);
+    setWaitingForUsdc(false);
   }
 
   const operator = vault?.config.operator ?? null;
@@ -201,6 +226,7 @@ export default function CustomerDashboard() {
 
   function openFaucet() {
     if (addr) void navigator.clipboard?.writeText(addr).catch(() => {});
+    setWaitingForUsdc(true);
     window.open(CIRCLE_FAUCET_URL, "_blank", "noopener,noreferrer");
   }
 
@@ -469,6 +495,7 @@ export default function CustomerDashboard() {
           <UsdcOnboard
             usdc={usdc}
             busy={busy}
+            waiting={waitingForUsdc}
             onFund={() => void fundXlm()}
             onTrust={() => void addUsdcTrust()}
             onFaucet={openFaucet}
@@ -493,6 +520,20 @@ export default function CustomerDashboard() {
             {busy === "deposit" ? "Depositing…" : "Deposit"}
           </button>
         </div>
+        {!isDemo && usdc && (
+          <p className="small muted mt">
+            You have <strong>{usdc.balance} USDC</strong> in your wallet
+            {Number(usdc.balance) > 0 && (
+              <>
+                {" · "}
+                <button className="linklike" onClick={() => setDepositAmt(usdc.balance.replace(/\.?0+$/, ""))}>
+                  deposit max
+                </button>
+              </>
+            )}
+            .
+          </p>
+        )}
         <p className="small muted mt">
           Your provider then records this in its private ledger and re-issues your claim. <em>Here that
           bookkeeping step is simulated in your browser</em> so you can see the whole lifecycle.
