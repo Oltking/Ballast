@@ -22,12 +22,12 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 | P0 | Toolchain + testnet skeleton | ✅ verifier + vault deployed |
 | P1 | Vault custody + flow accounting | ✅ |
 | P2 | RISC Zero audit guest | ✅ real STARK proof end-to-end |
-| P3 | On-chain verification + attestation | ✅ deployed + initialized on testnet |
+| P3 | On-chain verification + attestation | ✅ **real Groth16 proof verified on-chain — vault at `epoch 1`, SOLVENT** (produced via the free GitHub Actions workflow) |
 | P4 | Enforcement + staleness | ✅ operator outflows gated; deployed on testnet |
 | P5 | Inclusion + public re-verification | ✅ client-side inclusion + chain-only re-verify |
 | P6 | Frontend (3 surfaces + tamper demo) | ✅ consumer-first redesign — trust page, customer dashboard (deposit/claim/verify/withdraw + on-chain activity + USDC onboarding), role-aware operator console |
 | Features | F2 ratio · F3 credential/oracle · F4 margin feed · F5 breaker | ✅ contract + UI |
-| P7–P10 | Hardening, polish | 🚧 a11y/responsive/loading polish, negative-path + auth tests, decoded errors, vendor-split bundle done; real-Groth16-from-Mac + audit pass next |
+| P7–P10 | Hardening, polish | 🚧 a11y/responsive/loading polish, negative-path + auth tests, decoded errors, vendor-split bundle, free-CI proving pipeline done; audit pass next |
 
 ### Deployed (testnet)
 
@@ -47,7 +47,7 @@ The vault verifies proofs by calling Nethermind's [`stellar-risc0-verifier`](htt
 - **F4 — solvency-margin history feed:** a bounded on-chain ring buffer of recent attestations; the public page renders the `reserves − net_custodied` trend with a danger line at zero.
 - **F5 — insolvency circuit-breaker + pro-rata exit:** an INSOLVENT proof (or, via `check_breaker`, a stale one in Enforced mode) trips the vault into `WindDown` — operator outflows hard-locked, while `withdraw_user` switches to pro-rata payouts (`amount · reserves / net_custodied`, ratio-preserving so there's no run advantage). A later solvent proof recovers to `Healthy`.
 
-**Inclusion + public re-verification (P5):** a holder proves their own leaf is committed under the published `liabilities_root` entirely client-side, with the leaf never going on-chain — see `guest/tools` (`ballast-inclusion demo|prove|verify`), which uses the same `ballast-core` SHA-256 sum-tree as the guest. Anyone can re-derive the vault's SOLVENT/INSOLVENT verdict from chain reads alone via `scripts/wsl_public_verify.sh` (reads `latest_attestation` + live reserves/`net_custodied` and re-confirms the bound values). Populating a real attestation needs the Groth16 proving step below.
+**Inclusion + public re-verification (P5):** a holder proves their own leaf is committed under the published `liabilities_root` entirely client-side, with the leaf never going on-chain — see `guest/tools` (`ballast-inclusion demo|prove|verify`), which uses the same `ballast-core` SHA-256 sum-tree as the guest. Anyone can re-derive the vault's SOLVENT/INSOLVENT verdict from chain reads alone via `scripts/wsl_public_verify.sh` (reads `latest_attestation` + live reserves/`net_custodied` and re-confirms the bound values). **A real attestation is live** — the vault is at `epoch 1`, SOLVENT, produced by the `Prove & post` GitHub Actions workflow (a real RISC Zero Groth16 proof, verified inside the Soroban contract).
 
 ## Repo layout
 
