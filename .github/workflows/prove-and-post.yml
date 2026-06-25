@@ -53,7 +53,7 @@ jobs:
           BALANCES: ${{ inputs.balances }}
           RISC0_DEV_MODE: "0"
           REPIN: "1" # admin re-pin to the freshly built image so the proof always verifies
-        run: ./scripts/prove_and_post.sh
+        run: bash scripts/prove_and_post.sh
 
       - name: Upload proof artifact
         if: always()
