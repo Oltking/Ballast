@@ -17,6 +17,11 @@ on:
         description: "Private book: comma-separated STROOP balances (blank = single leaf == net_custodied)"
         required: false
         default: ""
+  # Operator auto-proves solvency twice a day so the on-chain attestation stays
+  # fresh (staleness window ~17280 ledgers ≈ 24h). The script binds each proof to
+  # live reserves/net_custodied, so it tracks deposits automatically.
+  schedule:
+    - cron: "0 */12 * * *"
 
 jobs:
   prove-and-post:
