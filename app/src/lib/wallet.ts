@@ -31,6 +31,17 @@ function getKit(): StellarWalletsKit {
   return kit;
 }
 
+/** The network passphrase the connected wallet is actually set to (so we can
+ *  catch a wallet pointed at mainnet before it builds a doomed testnet tx). */
+export async function getWalletNetwork(): Promise<string> {
+  try {
+    const { networkPassphrase } = await getKit().getNetwork();
+    return networkPassphrase || "";
+  } catch {
+    return "";
+  }
+}
+
 export async function connectWallet(): Promise<string> {
   const k = getKit();
   return new Promise<string>((resolve, reject) => {

@@ -6,7 +6,7 @@ import {
   loadVaultState,
   type VaultState,
 } from "../lib/stellar.ts";
-import { addTrustline, connectWallet, invoke } from "../lib/wallet.ts";
+import { addTrustline, connectWallet, getWalletNetwork, invoke } from "../lib/wallet.ts";
 import { fundWithFriendbot, usdcReady, usdcStatus, type UsdcStatus } from "../lib/assets.ts";
 import {
   claimLeaf,
@@ -24,6 +24,7 @@ import { hexToBytes, verifyInclusion, type InclusionProof } from "../lib/sumtree
 import {
   CIRCLE_FAUCET_URL,
   ISSUER_NAME,
+  NETWORK_PASSPHRASE,
   SIM_SOURCE,
   USDC_CODE,
   USDC_ISSUER,
@@ -87,6 +88,7 @@ export default function CustomerDashboard() {
 
   const [usdc, setUsdc] = useState<UsdcStatus | null>(null);
   const [waitingForUsdc, setWaitingForUsdc] = useState(false);
+  const [walletNet, setWalletNet] = useState<string | null>(null);
 
   // Check whether this wallet is XLM-funded, holds a USDC trustline, and its
   // balance — so we can guide the user to claim test USDC before depositing.
@@ -172,9 +174,16 @@ export default function CustomerDashboard() {
       if (!isValidAddress(a)) throw new Error("unexpected wallet address");
       setIsDemo(false);
       setAddr(a);
+      setWalletNet(await getWalletNetwork());
     } catch (e) {
       setErr(errMsg(e));
     }
+  }
+
+  // Re-read the wallet's network (after the user switches it to Testnet).
+  async function recheckNetwork() {
+    setWalletNet(await getWalletNetwork());
+    if (addr) void checkUsdc(addr);
   }
 
   function disconnect() {
@@ -187,6 +196,7 @@ export default function CustomerDashboard() {
     setChain([]);
     setUsdc(null);
     setWaitingForUsdc(false);
+    setWalletNet(null);
   }
 
   const operator = vault?.config.operator ?? null;
@@ -374,6 +384,10 @@ export default function CustomerDashboard() {
   }
 
   const pv = providerVerdict(vault);
+  // The wallet is pointed at a different network than this testnet app — every
+  // tx it signs will be rejected by testnet Horizon until the user switches.
+  const wrongNetwork = !isDemo && !!walletNet && walletNet !== NETWORK_PASSPHRASE;
+  const walletNetName = walletNet?.startsWith("Public") ? "Mainnet (Public)" : walletNet ? "a non-testnet network" : "";
   const balance = claim ? BigInt(claim.balance) : 0n;
   const acctHex = useMemo(() => (claim ? bytesToHex(claimLeaf(claim).account) : ""), [claim]);
   const saltHex = useMemo(() => (claim ? bytesToHex(claim.salt) : ""), [claim]);
@@ -466,6 +480,17 @@ export default function CustomerDashboard() {
           a real wallet to deposit and request withdrawals on testnet.
         </div>
       )}
+      {wrongNetwork && (
+        <div className="net-warn">
+          <div className="net-warn-title">⚠ Your wallet is on {walletNetName} — switch it to <strong>Testnet</strong></div>
+          <p>
+            This app runs entirely on the Stellar <strong>test</strong> network (play money, no real
+            funds). Your wallet is currently on {walletNetName}, so it shows 0 XLM and every action
+            here gets rejected. In your wallet, change the network to <strong>Testnet</strong>, then:
+          </p>
+          <button className="btn small" onClick={() => void recheckNetwork()}>I've switched — re-check</button>
+        </div>
+      )}
       {err && <div className="error">⚠ {err}</div>}
       {lastTx && (
         <div className="tx-ok">
@@ -497,7 +522,7 @@ export default function CustomerDashboard() {
       </div>
 
       {/* get testnet USDC — onboarding helper */}
-      {!isDemo && usdc && !usdcReady(usdc) && (
+      {!isDemo && !wrongNetwork && usdc && !usdcReady(usdc) && (
         <div className="panel">
           <UsdcOnboard
             usdc={usdc}
@@ -523,7 +548,7 @@ export default function CustomerDashboard() {
             <span>Amount (USDC)</span>
             <input type="text" value={depositAmt} onChange={(e) => setDepositAmt(e.target.value)} disabled={isDemo} />
           </label>
-          <button className="btn" disabled={!!busy || isDemo} onClick={() => void deposit()}>
+          <button className="btn" disabled={!!busy || isDemo || wrongNetwork} onClick={() => void deposit()}>
             {busy === "deposit" ? "Depositing…" : "Deposit"}
           </button>
         </div>
