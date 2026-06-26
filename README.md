@@ -23,7 +23,7 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 | P1 | Vault custody + flow accounting | ✅ |
 | P2 | RISC Zero audit guest | ✅ real STARK proof end-to-end |
 | P3 | On-chain verification + attestation | ✅ **real Groth16 proof verified on-chain — vault at `epoch 1`, SOLVENT** (produced via the free GitHub Actions workflow) |
-| P4 | Enforcement + staleness | ✅ operator outflows gated; deployed on testnet |
+| P4 | Enforcement + staleness | ✅ **live in `Enforced` mode** — operator outflows gated on a fresh proof; auto-re-proved every 12h via CI |
 | P5 | Inclusion + public re-verification | ✅ client-side inclusion + chain-only re-verify |
 | P6 | Frontend (3 surfaces + tamper demo) | ✅ consumer-first redesign — trust page, customer dashboard (deposit/claim/verify/withdraw + on-chain activity + USDC onboarding), role-aware operator console |
 | Features | F2 ratio · F3 credential/oracle · F4 margin feed · F5 breaker | ✅ contract + UI |
@@ -37,7 +37,9 @@ Phases (see `docs/PROMPT_2_build_STELLAR_ZK_v3.md`):
 | RISC Zero Groth16 verifier | `CCZ6SXH2FQ2CW3AIIUPHIKHXRJK5X55MTQS6P46MAPK7I6S4XIU6DOYF` |
 | Reserve asset (USDC SAC) | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` |
 
-The vault verifies proofs by calling Nethermind's [`stellar-risc0-verifier`](https://github.com/NethermindEth/stellar-risc0-verifier) Groth16 contract (`verify(seal, image_id, journal)`) — deployed **standalone** here (selector `73c457ba`, matching RISC Zero 3.0.x), not behind the shared router, so the verifier is fully under our admin key. Audit guest image id (current on-chain pin): `4711b310d51b710b9150d21b7dced6b9e8c566d45ce9b8e33047d87287b77bdf`, pinned via admin `set_image_id` to the CI (GitHub Actions) build. Vault initialized in `AttestationOnly` mode (`min_ratio_bps=10000`, `max_staleness_ledgers=17280`).
+The vault verifies proofs by calling Nethermind's [`stellar-risc0-verifier`](https://github.com/NethermindEth/stellar-risc0-verifier) Groth16 contract (`verify(seal, image_id, journal)`) — deployed **standalone** here (selector `73c457ba`, matching RISC Zero 3.0.x), not behind the shared router, so the verifier is fully under our admin key. Audit guest image id (current on-chain pin): `4711b310d51b710b9150d21b7dced6b9e8c566d45ce9b8e33047d87287b77bdf`, pinned via admin `set_image_id` to the CI (GitHub Actions) build.
+
+**Live & self-maintaining.** The vault runs in **`Enforced`** mode (`min_ratio_bps=10000`, `max_staleness_ledgers=17280`) — operator outflows are gated on a fresh, solvent proof. The operator **auto-re-proves solvency every 12h** via the scheduled `Prove & post` GitHub Action, so the on-chain attestation stays fresh and tracks live reserves/liabilities. Real USDC is custodied and the public page reflects it.
 
 **Enforcement (P4):** in `Enforced` mode, `withdraw_operator` is gated — it requires a solvency attestation that is *fresh* (within `max_staleness_ledgers`) and keeps `reserves_after ≥ net_custodied` (the on-chain custodied floor; `L` stays private, proven `L ≥ net_custodied`). Operator outflows never reduce `net_custodied`; user withdrawals are *never* gated. Admin can flip tiers via `set_mode`. Verified on testnet: flipping to `Enforced` with no fresh proof drives `max_operator_withdrawable` to 0.
 
