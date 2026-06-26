@@ -56,54 +56,67 @@ export async function fetchAccountEvents(address: string): Promise<ChainEvent[]>
     return [];
   }
   const addrTopic = addressArg(address).toXDR("base64");
-  const out: ChainEvent[] = [];
+  const byTx = new Map<string, ChainEvent>();
 
-  // Walk back in chunks until retention rejects the start ledger.
-  let startLedger = Math.max(latest - 17_000, 1);
-  for (let attempt = 0; attempt < 8; attempt++) {
+  // The testnet RPC's event retention is short, and — annoyingly — it returns an
+  // *empty* page (not an error) when startLedger is past the floor, so a single
+  // large lookback can silently miss recent events. Probe several windows from
+  // wide to narrow and merge (dedupe by tx+ledger) so we catch whichever one the
+  // node actually answers.
+  const lookbacks = [17_000, 11_000, 7_000, 3_500];
+  for (const back of lookbacks) {
+    let startLedger = Math.max(latest - back, 1);
     try {
       const res = await server.getEvents({
         startLedger,
         filters: [{ type: "contract", contractIds: [VAULT_ID], topics: [["*", addrTopic]] }],
         limit: 100,
       });
-      for (const ev of res.events) {
-        let name = "";
-        try {
-          name = String(scValToNative(ev.topic[0])).toLowerCase();
-        } catch {
-          continue;
-        }
-        const kind: ChainEvent["kind"] | null = name.includes("deposit")
-          ? "deposit"
-          : name.includes("withdraw")
-            ? "withdraw"
-            : null;
-        if (!kind) continue;
-        const { amount, netCustodied } = readPayload(ev.value);
-        out.push({
-          kind,
-          amount,
-          netCustodied,
-          ledger: ev.ledger,
-          ts: Date.parse(ev.ledgerClosedAt),
-          tx: ev.txHash,
-        });
-      }
-      break; // reached the page; we read the whole retained window in one pass
+      collect(res.events, byTx);
     } catch (e) {
-      // startLedger too old → pull the window forward and retry once.
+      // startLedger too old → retry once from the floor the RPC reports.
       const m = /ledger range:\s*(\d+)/.exec(e instanceof Error ? e.message : String(e));
-      if (m) {
-        const oldest = Number(m[1]);
-        if (oldest > startLedger) {
-          startLedger = oldest;
-          continue;
+      if (m && Number(m[1]) > startLedger) {
+        startLedger = Number(m[1]);
+        try {
+          const res = await server.getEvents({
+            startLedger,
+            filters: [{ type: "contract", contractIds: [VAULT_ID], topics: [["*", addrTopic]] }],
+            limit: 100,
+          });
+          collect(res.events, byTx);
+        } catch {
+          /* skip this window */
         }
       }
-      return out; // any other error: hand back whatever we have (possibly none)
     }
   }
 
-  return out.sort((a, b) => b.ts - a.ts);
+  return [...byTx.values()].sort((a, b) => b.ts - a.ts);
+}
+
+function collect(events: Awaited<ReturnType<rpc.Server["getEvents"]>>["events"], byTx: Map<string, ChainEvent>) {
+  for (const ev of events) {
+    let name = "";
+    try {
+      name = String(scValToNative(ev.topic[0])).toLowerCase();
+    } catch {
+      continue;
+    }
+    const kind: ChainEvent["kind"] | null = name.includes("deposit")
+      ? "deposit"
+      : name.includes("withdraw")
+        ? "withdraw"
+        : null;
+    if (!kind) continue;
+    const { amount, netCustodied } = readPayload(ev.value);
+    byTx.set(`${ev.txHash}-${ev.ledger}`, {
+      kind,
+      amount,
+      netCustodied,
+      ledger: ev.ledger,
+      ts: Date.parse(ev.ledgerClosedAt),
+      tx: ev.txHash,
+    });
+  }
 }

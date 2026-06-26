@@ -161,6 +161,25 @@ export default function CustomerDashboard() {
     };
   }, [waitingForUsdc, addr, isDemo, usdc, checkUsdc]);
 
+  // Reconcile the shown balance with real on-chain deposit/withdrawal events, so
+  // the dashboard self-heals if a local optimistic update was ever lost (e.g. an
+  // old result-decode error fired *after* a deposit already settled on-chain).
+  useEffect(() => {
+    if (isDemo || !claim || chain.length === 0) return;
+    let net = 0n;
+    for (const e of chain) {
+      net += e.kind === "deposit" ? BigInt(e.amount || "0") : -BigInt(e.amount || "0");
+    }
+    if (net < 0n) net = 0n;
+    if (net.toString() !== claim.balance) {
+      const next: StoredClaim = { ...claim, balance: net.toString() };
+      setClaim(next);
+      saveClaim(next);
+      void recompute(next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chain, isDemo]);
+
   function beginDemo() {
     setErr(null);
     setIsDemo(true);
@@ -522,7 +541,7 @@ export default function CustomerDashboard() {
       </div>
 
       {/* get testnet USDC — onboarding helper */}
-      {!isDemo && !wrongNetwork && usdc && !usdcReady(usdc) && (
+      {!isDemo && !wrongNetwork && usdc && !usdcReady(usdc) && balance === 0n && (
         <div className="panel">
           <UsdcOnboard
             usdc={usdc}
@@ -555,13 +574,20 @@ export default function CustomerDashboard() {
         {!isDemo && usdc && (
           <p className="small muted mt">
             You have <strong>{usdc.balance} USDC</strong> in your wallet
-            {Number(usdc.balance) > 0 && (
+            {Number(usdc.balance) > 0 ? (
               <>
                 {" · "}
                 <button className="linklike" onClick={() => setDepositAmt(usdc.balance.replace(/\.?0+$/, ""))}>
                   deposit max
                 </button>
               </>
+            ) : (
+              !wrongNetwork && (
+                <>
+                  {" · "}
+                  <button className="linklike" onClick={openFaucet}>get more from the faucet ↗</button>
+                </>
+              )
             )}
             .
           </p>
