@@ -113,15 +113,28 @@ echo "journal hex chars=${#JOURNAL}  seal hex chars=${#SEAL}  image_id=$IMAGE_ID
 # already matches. NOTE: if this changes the pin, update AUDIT_IMAGE_ID in
 # app/src/lib/config.ts to $IMAGE_ID afterwards.
 if [ "${REPIN:-0}" = "1" ]; then
-  bold "=== set_image_id (admin re-pin to $IMAGE_ID) ==="
-  stellar contract invoke --id "$VAULT" --source "$SOURCE" "${NET[@]}" --send=yes -- \
-    set_image_id --image_id "$IMAGE_ID"
+  # Only re-pin if the on-chain image differs — re-pinning to the same id is a
+  # redundant tx whose back-to-back sequencing with the post can race an RPC
+  # read replica into TxBadSeq.
+  CURRENT_CFG="$(stellar contract invoke --id "$VAULT" --source "$SOURCE" "${NET[@]}" -- config 2>/dev/null || true)"
+  if printf '%s' "$CURRENT_CFG" | grep -q "$IMAGE_ID"; then
+    echo "image id already pinned ($IMAGE_ID) — skipping set_image_id"
+  else
+    bold "=== set_image_id (admin re-pin to $IMAGE_ID) ==="
+    stellar contract invoke --id "$VAULT" --source "$SOURCE" "${NET[@]}" --send=yes -- \
+      set_image_id --image_id "$IMAGE_ID"
+    sleep 8 # let the ledger close so the next tx reads a fresh sequence
+  fi
 fi
 
 # ---- 3. post on-chain -------------------------------------------------------
 bold "=== post_attestation ==="
-stellar contract invoke --id "$VAULT" --source "$SOURCE" "${NET[@]}" --send=yes -- \
-  post_attestation --journal "$JOURNAL" --seal "$SEAL"
+post() {
+  stellar contract invoke --id "$VAULT" --source "$SOURCE" "${NET[@]}" --send=yes -- \
+    post_attestation --journal "$JOURNAL" --seal "$SEAL"
+}
+# Retry once on a transient sequence/RPC hiccup.
+post || { echo "post failed — retrying after a short delay…"; sleep 8; post; }
 
 # ---- 4. read back -----------------------------------------------------------
 bold "=== read back ==="
