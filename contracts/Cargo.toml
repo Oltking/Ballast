@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["vault"]
+members = ["vault", "registry"]
 
 [workspace.dependencies]
 soroban-sdk = "26.1.0"

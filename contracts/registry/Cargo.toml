@@ -1,0 +1,17 @@
+[package]
+name = "ballast-registry"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Ballast — generic zero-knowledge credential registry for Stellar (verify + record any RISC Zero predicate proof)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
