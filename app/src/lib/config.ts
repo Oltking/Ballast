@@ -12,6 +12,13 @@ export const VAULT_ID =
   "CAULRHZ5WKYXHQJTF3BC3AV4QHOIEPDN5LIGDBWS6UOJ76YLLPT3VONR";
 export const VERIFIER_ROUTER =
   "CCZ6SXH2FQ2CW3AIIUPHIKHXRJK5X55MTQS6P46MAPK7I6S4XIU6DOYF";
+// Generic ZK credential registry (P-A): verifies + records ANY RISC Zero
+// predicate proof against the same verifier above. The vault is one consumer;
+// new predicates register here with no contract redeploy.
+export const REGISTRY_ID =
+  "CCAEX6F2D62B5TV6PP5HUX5GICTL7CRVS4RATLZPBE2C6CMULWBMJTEG";
+export const REGISTRY_DOMAIN =
+  "804bf8ba1fb41ecebe7bfa7a5fa640a6bf8a35972209af2f09342f09945d82c4";
 export const USDC_SAC =
   "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
 // The classic asset the SAC wraps (Circle testnet USDC, home_domain centre.io).
