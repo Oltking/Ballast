@@ -1,0 +1,70 @@
+name: Prove & record ZK Credit Passport
+
+# Produces a REAL Groth16 "good standing" credit-passport proof on a free
+# x86_64 Linux runner (with Docker) and records the credential in the generic
+# registry. The arm64 Mac can't do the snark wrap; this runner can.
+#
+# Requires one repo secret: SOURCE_ACCOUNT_SECRET (the registry admin S... key).
+
+on:
+  workflow_dispatch:
+    inputs:
+      threshold:
+        description: "Min repaid loans to qualify (good standing)"
+        required: false
+        default: "5"
+      subject_index:
+        description: "Which demo borrower (0=good, 1=defaults, 2=excellent, 3=new)"
+        required: false
+        default: "0"
+      subject_hex:
+        description: "Optional: enrol a real wallet (32-byte hex) as that borrower"
+        required: false
+        default: ""
+
+jobs:
+  passport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show host (must be x86_64, Docker present)
+        run: |
+          uname -m
+          docker version
+          free -h
+
+      - name: Install RISC Zero toolchain (pinned to the guest's 3.0.5)
+        run: |
+          curl -L https://risczero.com/install | bash
+          echo "$HOME/.risc0/bin" >> "$GITHUB_PATH"
+          "$HOME/.risc0/bin/rzup" install rust
+          "$HOME/.risc0/bin/rzup" install r0vm 3.0.5
+          "$HOME/.risc0/bin/rzup" install cpp || true
+
+      - name: System deps for the Stellar CLI
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev libudev-dev pkg-config
+
+      - name: Install Stellar CLI
+        run: cargo install --locked stellar-cli
+
+      - name: Prove & record passport
+        env:
+          REGISTRY_ID: CDJ7GMWC2253BCPQVH2N37RKVXTLBKH7QGIAKF54DQEYJI4Q6X7M4I2D
+          REGISTRY_DOMAIN: d3f332c2d6bbb089f0a9f4ddfe2aade6b0a8ff81900517bc1c0984a390f5fece
+          SOURCE_ACCOUNT_SECRET: ${{ secrets.SOURCE_ACCOUNT_SECRET }}
+          PREDICATE_ID: "1"
+          THRESHOLD: ${{ inputs.threshold }}
+          SUBJECT_INDEX: ${{ inputs.subject_index }}
+          SUBJECT_HEX: ${{ inputs.subject_hex }}
+          RISC0_DEV_MODE: "0"
+        run: bash scripts/passport_prove_submit.sh
+
+      - name: Upload proof artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proof_passport
+          path: proof_passport.txt
+          if-no-files-found: ignore

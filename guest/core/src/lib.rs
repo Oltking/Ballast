@@ -14,6 +14,10 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+/// ZK Credit Passport — a portable, private reputation credential (P-B). A
+/// second predicate type that rides the same registry + verifier as solvency.
+pub mod passport;
+
 /// A private ledger entry. `account` is an opaque 32-byte id; `balance` is in
 /// stroops (1e-7 units) of the reserve asset; `salt` hides the leaf preimage so
 /// a guessable (account, balance) cannot be brute-forced from the root.
