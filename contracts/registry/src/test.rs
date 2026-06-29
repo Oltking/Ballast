@@ -292,6 +292,86 @@ fn rolling_anchor_invalidates_old_root() {
     assert!(s.reg.is_valid(&BytesN::from_array(&s.env, &subj(1)), &APRED, &0u32));
 }
 
+// =================== guest <-> registry byte compatibility ===================
+// Build a REAL passport journal with the guest's own packer (ballast_core) and
+// push it through the registry — so the on-chain parser offsets and the guest's
+// `pack_passport_journal` can never silently drift apart.
+
+use ballast_core::passport::{
+    build_credit_root, pack_passport_journal, prove_credit_inclusion, CreditRecord, PassportInputs,
+};
+
+fn demo_credit_book() -> std::vec::Vec<CreditRecord> {
+    let mk = |tag: u8, repaid: u32, defaults: u32| CreditRecord {
+        subject: [tag; 32],
+        repaid,
+        defaults,
+        salt: [tag.wrapping_add(0x40); 32],
+    };
+    std::vec![mk(0x11, 12, 0), mk(0x22, 3, 2), mk(0x33, 30, 0), mk(0x44, 0, 0)]
+}
+
+/// Register the passport predicate anchored to the book's published root and
+/// return (root, env-domain). Predicate id = `CPRED`.
+const CPRED: u32 = 1;
+
+#[test]
+fn real_guest_passport_journal_records_through_registry() {
+    let s = setup();
+    let book = demo_credit_book();
+    let root = build_credit_root(&book);
+    s.reg.register_predicate(
+        &CPRED,
+        &BytesN::from_array(&s.env, &IMAGE),
+        &17_280u32,
+        &String::from_str(&s.env, "ZK Credit Passport"),
+        &BytesN::from_array(&s.env, &root),
+    );
+
+    // Prove subject 0 (good standing: repaid 12 >= 5, 0 defaults).
+    let (record, path) = prove_credit_inclusion(&book, 0).unwrap();
+    let pi = PassportInputs { domain: DOMAIN, predicate_id: CPRED, nonce: 1, threshold: 5, root };
+    let result = ballast_core::passport::eval_passport(&record, &path, &pi);
+    assert!(result, "good borrower must pass");
+    let journal = pack_passport_journal(&record, &pi, result);
+    let j = Bytes::from_slice(&s.env, &journal);
+
+    s.reg.submit(&j, &seal(&s.env));
+
+    let ks = BytesN::from_array(&s.env, &[0x11; 32]);
+    assert!(s.reg.is_valid(&ks, &CPRED, &0u32));
+    let cred = s.reg.credential(&ks, &CPRED).unwrap();
+    assert_eq!(cred.param, 5); // proven threshold
+    assert_eq!(cred.predicate_id, CPRED);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #10)")] // AnchorMismatch
+fn passport_against_unpublished_book_is_rejected() {
+    // A prover invents their OWN book (so a friendlier record), producing a root
+    // the registry never published. The anchor check rejects it.
+    let s = setup();
+    let real_book = demo_credit_book();
+    let real_root = build_credit_root(&real_book);
+    s.reg.register_predicate(
+        &CPRED,
+        &BytesN::from_array(&s.env, &IMAGE),
+        &17_280u32,
+        &String::from_str(&s.env, "ZK Credit Passport"),
+        &BytesN::from_array(&s.env, &real_root),
+    );
+
+    let mut fake_book = demo_credit_book();
+    fake_book[0].repaid = 999; // lie
+    let fake_root = build_credit_root(&fake_book);
+    let (record, path) = prove_credit_inclusion(&fake_book, 0).unwrap();
+    let pi =
+        PassportInputs { domain: DOMAIN, predicate_id: CPRED, nonce: 1, threshold: 5, root: fake_root };
+    let result = ballast_core::passport::eval_passport(&record, &path, &pi);
+    let journal = pack_passport_journal(&record, &pi, result);
+    s.reg.submit(&Bytes::from_slice(&s.env, &journal), &seal(&s.env));
+}
+
 // =================== freshness ===================
 
 #[test]

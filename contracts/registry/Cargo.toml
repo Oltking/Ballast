@@ -15,3 +15,6 @@ soroban-sdk = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+# Reuse the guest's passport journal packer in tests so the on-chain registry
+# parser and the RISC Zero guest can never drift on byte layout.
+ballast-core = { path = "../../guest/core" }
