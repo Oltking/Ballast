@@ -16,9 +16,9 @@ export const VERIFIER_ROUTER =
 // predicate proof against the same verifier above. The vault is one consumer;
 // new predicates register here with no contract redeploy.
 export const REGISTRY_ID =
-  "CCAEX6F2D62B5TV6PP5HUX5GICTL7CRVS4RATLZPBE2C6CMULWBMJTEG";
+  "CDJ7GMWC2253BCPQVH2N37RKVXTLBKH7QGIAKF54DQEYJI4Q6X7M4I2D";
 export const REGISTRY_DOMAIN =
-  "804bf8ba1fb41ecebe7bfa7a5fa640a6bf8a35972209af2f09342f09945d82c4";
+  "d3f332c2d6bbb089f0a9f4ddfe2aade6b0a8ff81900517bc1c0984a390f5fece";
 export const USDC_SAC =
   "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
 // The classic asset the SAC wraps (Circle testnet USDC, home_domain centre.io).

@@ -39,7 +39,37 @@
         }
       ]
     ],
-    [],
+    [
+      [
+        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+        {
+          "function": {
+            "contract_fn": {
+              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
+              "function_name": "register_predicate",
+              "args": [
+                {
+                  "u32": 11
+                },
+                {
+                  "bytes": "0303030303030303030303030303030303030303030303030303030303030303"
+                },
+                {
+                  "u32": 17280
+                },
+                {
+                  "string": "member of published set"
+                },
+                {
+                  "bytes": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a"
+                }
+              ]
+            }
+          },
+          "sub_invocations": []
+        }
+      ]
+    ],
     []
   ],
   "ledger": {
@@ -101,84 +131,19 @@
           "data": {
             "contract_data": {
               "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": {
-                "vec": [
-                  {
-                    "symbol": "Cred"
-                  },
-                  {
-                    "map": [
-                      {
-                        "key": {
-                          "symbol": "predicate_id"
-                        },
-                        "val": {
-                          "u32": 7
-                        }
-                      },
-                      {
-                        "key": {
-                          "symbol": "subject"
-                        },
-                        "val": {
-                          "bytes": "0101010101010101010101010101010101010101010101010101010101010101"
-                        }
-                      }
-                    ]
-                  }
-                ]
+                "ledger_key_nonce": {
+                  "nonce": "5541220902715666415"
+                }
               },
-              "durability": "persistent",
-              "val": {
-                "map": [
-                  {
-                    "key": {
-                      "symbol": "ledger"
-                    },
-                    "val": {
-                      "u32": 0
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "nonce"
-                    },
-                    "val": {
-                      "u32": 3
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "param"
-                    },
-                    "val": {
-                      "i128": "0"
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "predicate_id"
-                    },
-                    "val": {
-                      "u32": 7
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "subject"
-                    },
-                    "val": {
-                      "bytes": "0101010101010101010101010101010101010101010101010101010101010101"
-                    }
-                  }
-                ]
-              }
+              "durability": "temporary",
+              "val": "void"
             }
           },
           "ext": "v0"
         },
-        "live_until": 1036800
+        "live_until": 6311999
       },
       {
         "entry": {
@@ -283,6 +248,62 @@
                             },
                             "val": {
                               "string": "sample >= X"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "Predicate"
+                          },
+                          {
+                            "u32": 11
+                          }
+                        ]
+                      },
+                      "val": {
+                        "map": [
+                          {
+                            "key": {
+                              "symbol": "active"
+                            },
+                            "val": {
+                              "bool": true
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "anchor"
+                            },
+                            "val": {
+                              "bytes": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a"
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "fresh_window"
+                            },
+                            "val": {
+                              "u32": 17280
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "image_id"
+                            },
+                            "val": {
+                              "bytes": "0303030303030303030303030303030303030303030303030303030303030303"
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "label"
+                            },
+                            "val": {
+                              "string": "member of published set"
                             }
                           }
                         ]

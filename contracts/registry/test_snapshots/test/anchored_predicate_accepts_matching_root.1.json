@@ -39,6 +39,37 @@
         }
       ]
     ],
+    [
+      [
+        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+        {
+          "function": {
+            "contract_fn": {
+              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
+              "function_name": "register_predicate",
+              "args": [
+                {
+                  "u32": 11
+                },
+                {
+                  "bytes": "0303030303030303030303030303030303030303030303030303030303030303"
+                },
+                {
+                  "u32": 17280
+                },
+                {
+                  "string": "member of published set"
+                },
+                {
+                  "bytes": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a"
+                }
+              ]
+            }
+          },
+          "sub_invocations": []
+        }
+      ]
+    ],
     [],
     []
   ],
@@ -101,6 +132,26 @@
           "data": {
             "contract_data": {
               "ext": "v0",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+              "key": {
+                "ledger_key_nonce": {
+                  "nonce": "5541220902715666415"
+                }
+              },
+              "durability": "temporary",
+              "val": "void"
+            }
+          },
+          "ext": "v0"
+        },
+        "live_until": 6311999
+      },
+      {
+        "entry": {
+          "last_modified_ledger_seq": 0,
+          "data": {
+            "contract_data": {
+              "ext": "v0",
               "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
               "key": {
                 "vec": [
@@ -114,7 +165,7 @@
                           "symbol": "predicate_id"
                         },
                         "val": {
-                          "u32": 7
+                          "u32": 11
                         }
                       },
                       {
@@ -145,7 +196,7 @@
                       "symbol": "nonce"
                     },
                     "val": {
-                      "u32": 3
+                      "u32": 1
                     }
                   },
                   {
@@ -161,7 +212,7 @@
                       "symbol": "predicate_id"
                     },
                     "val": {
-                      "u32": 7
+                      "u32": 11
                     }
                   },
                   {
@@ -283,6 +334,62 @@
                             },
                             "val": {
                               "string": "sample >= X"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "Predicate"
+                          },
+                          {
+                            "u32": 11
+                          }
+                        ]
+                      },
+                      "val": {
+                        "map": [
+                          {
+                            "key": {
+                              "symbol": "active"
+                            },
+                            "val": {
+                              "bool": true
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "anchor"
+                            },
+                            "val": {
+                              "bytes": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a"
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "fresh_window"
+                            },
+                            "val": {
+                              "u32": 17280
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "image_id"
+                            },
+                            "val": {
+                              "bytes": "0303030303030303030303030303030303030303030303030303030303030303"
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "label"
+                            },
+                            "val": {
+                              "string": "member of published set"
                             }
                           }
                         ]

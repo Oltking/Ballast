@@ -64,6 +64,9 @@ pub enum Error {
     PredicateFailed = 8,
     /// `fresh_window` of zero at registration.
     InvalidConfig = 9,
+    /// Predicate declares an on-chain anchor, but the journal's anchor (the
+    /// 32-byte tail after the envelope) is missing or doesn't match it.
+    AnchorMismatch = 10,
 }
 
 // ----------------------------------------------------------------------------
@@ -73,12 +76,20 @@ pub enum Error {
 /// A registered claim type. `image_id` pins the RISC Zero guest whose proofs are
 /// accepted for this predicate; `fresh_window` is the recency window (in ledgers)
 /// a consumer's `is_valid` defaults to. `label` is a human description.
+///
+/// `anchor` binds proofs to an on-chain dataset: when non-zero, every submitted
+/// journal must carry that exact 32 bytes as its tail (after the generic
+/// envelope). This is what keeps set-membership-style predicates (allowlists,
+/// credit-record books) **trustless** — a prover can't fabricate their own
+/// Merkle root; it must equal the one the admin published here. All-zero = no
+/// anchor (e.g. for self-contained predicates that bind everything in-guest).
 #[contracttype]
 #[derive(Clone)]
 pub struct PredicateDef {
     pub image_id: BytesN<32>,
     pub fresh_window: u32,
     pub label: String,
+    pub anchor: BytesN<32>,
     pub active: bool,
 }
 
@@ -231,12 +242,17 @@ impl RegistryContract {
 
     /// Register a new predicate (claim type). Admin-only. Fails if the id is
     /// already taken — use `set_predicate` to update an existing one.
+    /// Register a new predicate (claim type). Admin-only. Fails if the id is
+    /// already taken — use `set_predicate` to update an existing one. Pass an
+    /// all-zero `anchor` for predicates that bind everything in-guest, or a
+    /// published Merkle root for set-membership-style predicates.
     pub fn register_predicate(
         env: Env,
         predicate_id: u32,
         image_id: BytesN<32>,
         fresh_window: u32,
         label: String,
+        anchor: BytesN<32>,
     ) {
         let cfg = get_config(&env);
         cfg.admin.require_auth();
@@ -248,19 +264,21 @@ impl RegistryContract {
         }
         env.storage().instance().set(
             &DataKey::Predicate(predicate_id),
-            &PredicateDef { image_id: image_id.clone(), fresh_window, label, active: true },
+            &PredicateDef { image_id: image_id.clone(), fresh_window, label, anchor, active: true },
         );
         bump_instance(&env);
         PredicateRegistered { predicate_id, image_id, fresh_window }.publish(&env);
     }
 
-    /// Update an existing predicate (re-pin its `image_id` after a guest upgrade,
-    /// change the freshness window, or deactivate it). Admin-only.
+    /// Update an existing predicate: re-pin its `image_id` after a guest upgrade,
+    /// change the freshness window, **roll the anchor** (e.g. publish a new
+    /// record-set root), or deactivate it. Admin-only.
     pub fn set_predicate(
         env: Env,
         predicate_id: u32,
         image_id: BytesN<32>,
         fresh_window: u32,
+        anchor: BytesN<32>,
         active: bool,
     ) {
         let cfg = get_config(&env);
@@ -279,7 +297,13 @@ impl RegistryContract {
             .unwrap();
         env.storage().instance().set(
             &DataKey::Predicate(predicate_id),
-            &PredicateDef { image_id: image_id.clone(), fresh_window, label: prev.label, active },
+            &PredicateDef {
+                image_id: image_id.clone(),
+                fresh_window,
+                label: prev.label,
+                anchor,
+                active,
+            },
         );
         bump_instance(&env);
         PredicateRegistered { predicate_id, image_id, fresh_window }.publish(&env);
@@ -319,12 +343,25 @@ impl RegistryContract {
         let journal_digest: BytesN<32> = env.crypto().sha256(&journal).to_bytes();
         VerifierClient::new(&env, &cfg.verifier).verify(&seal, &pd.image_id, &journal_digest);
 
-        // 4. A failing predicate is never recorded as a credential.
+        // 4. If the predicate is anchored to an on-chain dataset, the journal's
+        //    tail (bytes after the envelope) must carry that exact anchor — so a
+        //    prover can't swap in a Merkle root of their own making.
+        let zero = BytesN::from_array(&env, &[0u8; 32]);
+        if pd.anchor != zero {
+            if journal.len() < ENVELOPE_LEN + 32 {
+                panic_with(&env, Error::AnchorMismatch);
+            }
+            if read_bytes32(&env, &journal, ENVELOPE_LEN) != pd.anchor {
+                panic_with(&env, Error::AnchorMismatch);
+            }
+        }
+
+        // 5. A failing predicate is never recorded as a credential.
         if !result {
             panic_with(&env, Error::PredicateFailed);
         }
 
-        // 5. Anti-replay: nonce must strictly exceed any recorded one.
+        // 6. Anti-replay: nonce must strictly exceed any recorded one.
         let key = CredKey { subject: subject.clone(), predicate_id };
         let dk = DataKey::Cred(key);
         if let Some(prev) = env.storage().persistent().get::<_, Credential>(&dk) {
@@ -333,7 +370,7 @@ impl RegistryContract {
             }
         }
 
-        // 6. Record.
+        // 7. Record.
         let ledger = env.ledger().sequence();
         let cred = Credential { subject: subject.clone(), predicate_id, param, nonce, ledger };
         env.storage().persistent().set(&dk, &cred);

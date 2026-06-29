@@ -64,14 +64,28 @@ fn init_registry<'a>(env: &Env, verifier: Address) -> RegistryContractClient<'a>
     let id = env.register(RegistryContract, ());
     let reg = RegistryContractClient::new(env, &id);
     reg.initialize(&admin, &verifier, &domain);
-    // Register the sample predicate used across the happy-path tests.
+    // Register the sample predicate used across the happy-path tests (no anchor).
     reg.register_predicate(
         &PRED,
         &BytesN::from_array(env, &IMAGE),
         &17_280u32,
         &String::from_str(env, "sample >= X"),
+        &BytesN::from_array(env, &[0u8; 32]),
     );
     reg
+}
+
+const ANCHOR: [u8; 32] = [0x5a; 32];
+
+/// Append a 32-byte anchor tail to an envelope journal.
+fn with_anchor(env: &Env, base: Bytes, anchor: [u8; 32]) -> Bytes {
+    let mut v = std::vec::Vec::new();
+    let len = base.len();
+    for i in 0..len {
+        v.push(base.get(i).unwrap());
+    }
+    v.extend_from_slice(&anchor);
+    Bytes::from_slice(env, &v)
 }
 
 /// Pack the generic envelope (matches `ENVELOPE_LEN` layout in lib.rs).
@@ -214,6 +228,70 @@ fn rejects_when_verifier_rejects() {
     s.reg.submit(&envelope(&s.env, DOMAIN, PRED, subj(1), 1, 0, true), &seal(&s.env));
 }
 
+// =================== anchored predicates (set-membership binding) ===================
+
+const APRED: u32 = 11;
+
+/// Register an anchored predicate alongside the default one.
+fn add_anchored(s: &Setup) {
+    s.reg.register_predicate(
+        &APRED,
+        &BytesN::from_array(&s.env, &IMAGE),
+        &17_280u32,
+        &String::from_str(&s.env, "member of published set"),
+        &BytesN::from_array(&s.env, &ANCHOR),
+    );
+}
+
+#[test]
+fn anchored_predicate_accepts_matching_root() {
+    let s = setup();
+    add_anchored(&s);
+    let base = envelope(&s.env, DOMAIN, APRED, subj(1), 1, 0, true);
+    let j = with_anchor(&s.env, base, ANCHOR);
+    s.reg.submit(&j, &seal(&s.env));
+    assert!(s.reg.is_valid(&BytesN::from_array(&s.env, &subj(1)), &APRED, &0u32));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #10)")] // AnchorMismatch (wrong root)
+fn anchored_predicate_rejects_wrong_root() {
+    let s = setup();
+    add_anchored(&s);
+    let base = envelope(&s.env, DOMAIN, APRED, subj(1), 1, 0, true);
+    let j = with_anchor(&s.env, base, [0xff; 32]); // not the published root
+    s.reg.submit(&j, &seal(&s.env));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #10)")] // AnchorMismatch (missing tail)
+fn anchored_predicate_rejects_missing_anchor() {
+    let s = setup();
+    add_anchored(&s);
+    // Envelope only, no anchor tail.
+    let j = envelope(&s.env, DOMAIN, APRED, subj(1), 1, 0, true);
+    s.reg.submit(&j, &seal(&s.env));
+}
+
+#[test]
+fn rolling_anchor_invalidates_old_root() {
+    // After the admin rolls the published root, a proof against the old root fails.
+    let s = setup();
+    add_anchored(&s);
+    let new_root = [0x77; 32];
+    s.reg.set_predicate(
+        &APRED,
+        &BytesN::from_array(&s.env, &IMAGE),
+        &17_280u32,
+        &BytesN::from_array(&s.env, &new_root),
+        &true,
+    );
+    let base = envelope(&s.env, DOMAIN, APRED, subj(1), 1, 0, true);
+    let j_new = with_anchor(&s.env, base, new_root);
+    s.reg.submit(&j_new, &seal(&s.env)); // matches the rolled root → ok
+    assert!(s.reg.is_valid(&BytesN::from_array(&s.env, &subj(1)), &APRED, &0u32));
+}
+
 // =================== freshness ===================
 
 #[test]
@@ -268,6 +346,7 @@ fn cannot_register_duplicate_predicate() {
         &BytesN::from_array(&s.env, &IMAGE),
         &10u32,
         &String::from_str(&s.env, "dup"),
+        &BytesN::from_array(&s.env, &[0u8; 32]),
     );
 }
 
@@ -275,7 +354,8 @@ fn cannot_register_duplicate_predicate() {
 fn set_predicate_repins_and_keeps_label() {
     let s = setup();
     let new_img = BytesN::from_array(&s.env, &[8u8; 32]);
-    s.reg.set_predicate(&PRED, &new_img, &500u32, &true);
+    let zero = BytesN::from_array(&s.env, &[0u8; 32]);
+    s.reg.set_predicate(&PRED, &new_img, &500u32, &zero, &true);
     let pd = s.reg.predicate(&PRED).unwrap();
     assert_eq!(pd.image_id, new_img);
     assert_eq!(pd.fresh_window, 500);
@@ -286,7 +366,8 @@ fn set_predicate_repins_and_keeps_label() {
 #[should_panic(expected = "Error(Contract, #4)")] // PredicateUnknown (deactivated)
 fn deactivated_predicate_rejects_submit() {
     let s = setup();
-    s.reg.set_predicate(&PRED, &BytesN::from_array(&s.env, &IMAGE), &17_280u32, &false);
+    let zero = BytesN::from_array(&s.env, &[0u8; 32]);
+    s.reg.set_predicate(&PRED, &BytesN::from_array(&s.env, &IMAGE), &17_280u32, &zero, &false);
     s.reg.submit(&envelope(&s.env, DOMAIN, PRED, subj(1), 1, 0, true), &seal(&s.env));
 }
 
@@ -315,5 +396,6 @@ fn register_predicate_requires_admin_auth() {
         &BytesN::from_array(&env, &IMAGE),
         &10u32,
         &String::from_str(&env, "x"),
+        &BytesN::from_array(&env, &[0u8; 32]),
     );
 }
