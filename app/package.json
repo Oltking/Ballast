@@ -11,12 +11,14 @@
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^1.7.3",
     "@stellar/stellar-sdk": "^16.0.1",
+    "@upstash/redis": "^1.38.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@vercel/node": "^5.8.22",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.6.3",
     "vite": "^6.0.5"
