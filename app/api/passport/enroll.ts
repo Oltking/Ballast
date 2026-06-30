@@ -5,7 +5,7 @@
 // root so the caller can roll the registry anchor.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { body, cors, handleError, json, requireProverToken, subjectOf, isValidAddress } from "../_lib/http.ts";
+import { body, cors, handleError, json, requireOperator, subjectOf, isValidAddress } from "../_lib/http.ts";
 import { getStore } from "../_lib/store.ts";
 import { creditRootHex } from "../_lib/credit.ts";
 
@@ -13,8 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;
   try {
     if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-    requireProverToken(req);
     const b = body(req);
+    await requireOperator(req, b); // CI prover token OR operator-console wallet auth
     const address = String(b.address ?? "");
     if (!isValidAddress(address)) return json(res, 400, { error: "valid G... address required" });
     const repaid = Math.max(0, Math.floor(Number(b.repaid ?? 0)));

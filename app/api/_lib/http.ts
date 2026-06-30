@@ -19,7 +19,7 @@ import {
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
 import { getStore } from "./store.ts";
-import { NETWORK_PASSPHRASE } from "./chain.ts";
+import { NETWORK_PASSPHRASE, hasOperatorKey, operatorAddress } from "./chain.ts";
 
 export function json(res: VercelResponse, status: number, body: unknown): void {
   res.status(status).setHeader("content-type", "application/json");
@@ -122,6 +122,41 @@ export function requireProverToken(req: VercelRequest): void {
   const expected = process.env.PROVER_TOKEN;
   if (!expected) throw new HttpError(503, "PROVER_TOKEN not configured");
   if (tok !== expected) throw new HttpError(401, "bad prover token");
+}
+
+/** The set of addresses allowed to act as the operator from a browser console:
+ *  the operator key's own public key, plus any `ADMIN_ADDRESS` (comma list). */
+function adminAddresses(): string[] {
+  const list: string[] = [];
+  if (hasOperatorKey()) {
+    try {
+      list.push(operatorAddress());
+    } catch {
+      /* ignore */
+    }
+  }
+  for (const a of (process.env.ADMIN_ADDRESS || "").split(",")) {
+    if (a.trim()) list.push(a.trim());
+  }
+  return list;
+}
+
+/** Authenticate an operator/admin via a wallet-signed challenge, then check the
+ *  address is an allowed admin. For browser operator-console actions. */
+export async function requireAdminAuth(body: AuthBody): Promise<string> {
+  const address = await requireWalletAuth(body);
+  if (!adminAddresses().includes(address)) throw new HttpError(403, "not an operator");
+  return address;
+}
+
+/** Operator-or-machine: a valid `x-prover-token` header (CI/automation) OR an
+ *  admin wallet signature (operator console). Returns "prover" or the address. */
+export async function requireOperator(req: VercelRequest, body: AuthBody): Promise<string> {
+  if (req.headers["x-prover-token"]) {
+    requireProverToken(req);
+    return "prover";
+  }
+  return requireAdminAuth(body);
 }
 
 export class HttpError extends Error {

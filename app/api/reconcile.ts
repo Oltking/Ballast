@@ -7,7 +7,7 @@
 // account. Idempotent: it's a pure function of chain state.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { cors, handleError, json, requireProverToken, subjectOf } from "./_lib/http.ts";
+import { body, cors, handleError, json, requireOperator, subjectOf } from "./_lib/http.ts";
 import { getStore } from "./_lib/store.ts";
 import { latestLedger, netCustodyByAddress } from "./_lib/chain.ts";
 import { bookSummary } from "./_lib/book.ts";
@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;
   try {
     if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
-    requireProverToken(req);
+    await requireOperator(req, body(req)); // CI prover token OR operator-console wallet auth
     const store = getStore();
     const ledger = await latestLedger();
     const net = await netCustodyByAddress();

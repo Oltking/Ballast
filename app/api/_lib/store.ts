@@ -39,6 +39,8 @@ export interface Store {
   // auth challenge (short-lived)
   putChallenge(address: string, nonce: string, ttlSeconds: number): Promise<void>;
   takeChallenge(address: string): Promise<string | null>;
+  // debounce: acquire `key` for `ttlSeconds`; true only if not already held.
+  acquireOnce(key: string, ttlSeconds: number): Promise<boolean>;
 }
 
 function randHex(bytes = 32): string {
@@ -119,6 +121,10 @@ class RedisStore implements Store {
     if (v) await this.r.del(key);
     return v ?? null;
   }
+  async acquireOnce(key: string, ttl: number): Promise<boolean> {
+    const ok = await this.r.set(`lock:${key}`, "1", { nx: true, ex: ttl });
+    return ok === "OK";
+  }
 }
 
 // ---- in-memory dev fallback (per-process; not durable) ----
@@ -175,6 +181,14 @@ class MemoryStore implements Store {
     this.chal.delete(address);
     if (!c || c.exp < Date.now()) return null;
     return c.nonce;
+  }
+  private locks = new Map<string, number>();
+  async acquireOnce(key: string, ttl: number) {
+    const now = Date.now();
+    const exp = this.locks.get(key);
+    if (exp && exp > now) return false;
+    this.locks.set(key, now + ttl * 1000);
+    return true;
   }
 }
 
