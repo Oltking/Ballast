@@ -19,6 +19,7 @@
 use anyhow::{anyhow, Context, Result};
 use ballast_core::{run_audit, Leaf, PublicInputs};
 use ballast_methods::{BALLAST_AUDIT_ELF, BALLAST_AUDIT_ID};
+use serde::Deserialize;
 use risc0_ethereum_contracts::encode_seal;
 use risc0_zkvm::sha::Digest;
 use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts};
@@ -34,6 +35,40 @@ fn hex32(s: &str) -> Result<[u8; 32]> {
     v.try_into().map_err(|_| anyhow!("domain must be 32 bytes"))
 }
 
+/// One leaf as served by the backend `/api/book-leaves` (hex account/salt,
+/// stroop balance as a string). The array order is canonical (the backend sorts
+/// by subject), so the root the prover builds matches the backend's published root.
+#[derive(Deserialize)]
+struct BookLeaf {
+    account: String,
+    balance: String,
+    salt: String,
+}
+
+#[derive(Deserialize)]
+struct BookFile {
+    leaves: Vec<BookLeaf>,
+}
+
+/// Read the real private book from a JSON file (`{ "leaves": [...] }` or a bare
+/// `[...]`), preserving order, and build the guest `Leaf`s.
+fn read_leaves_file(path: &str) -> Result<Vec<Leaf>> {
+    let text = fs::read_to_string(path).with_context(|| format!("read leaves file {path}"))?;
+    let raw: Vec<BookLeaf> = match serde_json::from_str::<BookFile>(&text) {
+        Ok(f) => f.leaves,
+        Err(_) => serde_json::from_str::<Vec<BookLeaf>>(&text).context("parse leaves json")?,
+    };
+    raw.into_iter()
+        .map(|l| {
+            Ok(Leaf {
+                account: hex32(&l.account).context("leaf account")?,
+                balance: l.balance.trim().parse().context("leaf balance")?,
+                salt: hex32(&l.salt).context("leaf salt")?,
+            })
+        })
+        .collect()
+}
+
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
@@ -44,22 +79,28 @@ fn main() -> Result<()> {
     let ratio_bps: u32 = arg(&args, "--ratio").unwrap_or_else(|| "10000".into()).parse()?;
     let out = arg(&args, "--out").unwrap_or_else(|| "proof_chain.txt".into());
 
-    // Optional private book; empty book => L = 0.
-    let leaves: Vec<Leaf> = match arg(&args, "--balances") {
-        None => Vec::new(),
-        Some(list) if list.is_empty() => Vec::new(),
-        Some(list) => list
-            .split(',')
-            .enumerate()
-            .map(|(i, b)| {
-                Ok(Leaf {
-                    account: [i as u8; 32],
-                    balance: b.trim().parse().context("balance")?,
-                    salt: [(i as u8).wrapping_add(0xC0); 32],
+    // The private book. Prefer `--leaves <file.json>` (the REAL book served by the
+    // custodian backend, so the proof binds live liabilities). Else fall back to
+    // the synthetic `--balances` list. Empty book => L = 0.
+    let leaves: Vec<Leaf> = match arg(&args, "--leaves") {
+        Some(path) => read_leaves_file(&path)?,
+        None => match arg(&args, "--balances") {
+            None => Vec::new(),
+            Some(list) if list.is_empty() => Vec::new(),
+            Some(list) => list
+                .split(',')
+                .enumerate()
+                .map(|(i, b)| {
+                    Ok(Leaf {
+                        account: [i as u8; 32],
+                        balance: b.trim().parse().context("balance")?,
+                        salt: [(i as u8).wrapping_add(0xC0); 32],
+                    })
                 })
-            })
-            .collect::<Result<_>>()?,
+                .collect::<Result<_>>()?,
+        },
     };
+    eprintln!("book leaves   : {}", leaves.len());
 
     let public = PublicInputs { reserves, net_custodied, ratio_bps, epoch, domain };
     let (outcome, l) = run_audit(&leaves, &public);
@@ -68,6 +109,7 @@ fn main() -> Result<()> {
         Digest::from(BALLAST_AUDIT_ID)
     );
     eprintln!("L (private)   : {l}");
+    eprintln!("liab root     : {}", hex::encode(outcome.liabilities_root));
     eprintln!(
         "verdict       : solvent={} reserves_checked={} floor_checked={}",
         outcome.solvent, outcome.reserves_checked, outcome.floor_checked

@@ -56,6 +56,10 @@ jobs:
           VAULT_DOMAIN: 28b89f3db2b173c1332ec22d82bc81dc823c6dead06186d2f51c9ffb0b5be7ba
           SOURCE_ACCOUNT_SECRET: ${{ secrets.SOURCE_ACCOUNT_SECRET }}
           BALANCES: ${{ inputs.balances }}
+          # If set, the prover pulls the REAL private book from the custodian
+          # backend instead of a synthetic one. Unset → synthetic fallback.
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+          PROVER_TOKEN: ${{ secrets.PROVER_TOKEN }}
           RISC0_DEV_MODE: "0"
           REPIN: "1" # admin re-pin to the freshly built image so the proof always verifies
         run: bash scripts/prove_and_post.sh

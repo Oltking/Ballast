@@ -1029,6 +1029,8 @@ dependencies = [
  "hex",
  "risc0-ethereum-contracts",
  "risc0-zkvm",
+ "serde",
+ "serde_json",
  "sha2",
 ]
 

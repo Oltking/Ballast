@@ -90,15 +90,35 @@ RESERVES="$(view reserves)"
 NC="$(view net_custodied)"
 EPOCH_NOW="$(view epoch)"
 NEXT_EPOCH=$(( EPOCH_NOW + 1 ))
-BALANCES="${BALANCES:-$NC}"   # default book: one leaf == net_custodied
 echo "reserves=$RESERVES net_custodied=$NC epoch=$EPOCH_NOW -> proving epoch=$NEXT_EPOCH"
-echo "domain=$DOMAIN ratio_bps=$RATIO book(balances)=[$BALANCES]"
+
+# ---- 1b. fetch the REAL private book from the custodian backend -------------
+# If BACKEND_URL + PROVER_TOKEN are set, reconcile the book to on-chain custody
+# and pull the exact leaves so the proof binds the live liabilities (and users'
+# inclusion proofs verify against the recorded root). Else fall back to a
+# synthetic book (BALANCES, default = a single leaf == net_custodied).
+PROVE_ARGS=()
+if [ -n "${BACKEND_URL:-}" ] && [ -n "${PROVER_TOKEN:-}" ]; then
+  bold "=== fetch real book from $BACKEND_URL ==="
+  curl -fsS -X POST "$BACKEND_URL/api/reconcile" -H "x-prover-token: $PROVER_TOKEN" >/dev/null \
+    && echo "reconciled book to on-chain custody"
+  curl -fsS "$BACKEND_URL/api/book-leaves" -H "x-prover-token: $PROVER_TOKEN" -o "$ROOT/book_leaves.json" \
+    || die "could not fetch book leaves"
+  COUNT="$(grep -o '"account"' "$ROOT/book_leaves.json" | wc -l | tr -d ' ')"
+  echo "fetched $COUNT real leaves"
+  PROVE_ARGS=(--leaves "$ROOT/book_leaves.json")
+else
+  BALANCES="${BALANCES:-$NC}"   # synthetic default: one leaf == net_custodied
+  echo "no backend configured — synthetic book(balances)=[$BALANCES]"
+  PROVE_ARGS=(--balances "$BALANCES")
+fi
+echo "domain=$DOMAIN ratio_bps=$RATIO"
 
 # ---- 2. prove (Groth16) -----------------------------------------------------
 bold "=== prove (Groth16 — first run pulls the docker prover image; needs RAM) ==="
 ( cd "$ROOT/guest" && cargo run --release -p ballast-host --bin prove_chain -- \
     --domain "$DOMAIN" --reserves "$RESERVES" --net-custodied "$NC" \
-    --epoch "$NEXT_EPOCH" --ratio "$RATIO" --balances "$BALANCES" --out "$OUT" )
+    --epoch "$NEXT_EPOCH" --ratio "$RATIO" "${PROVE_ARGS[@]}" --out "$OUT" )
 
 [ -s "$OUT" ] || die "prover produced no output ($OUT)."
 JOURNAL="$(sed -n '1p' "$OUT")"
