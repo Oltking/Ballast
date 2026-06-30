@@ -21,6 +21,11 @@ on:
         description: "Optional: enrol a real wallet (32-byte hex) as that borrower"
         required: false
         default: ""
+  # Re-prove the demo borrower's good standing twice a day so the on-chain
+  # credential stays fresh (fresh_window ≈ 24h). The nonce uses the latest
+  # ledger, so each scheduled run strictly increases it and refreshes cleanly.
+  schedule:
+    - cron: "30 */12 * * *"
 
 jobs:
   passport:
