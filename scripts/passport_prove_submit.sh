@@ -75,13 +75,25 @@ echo "predicate=$PREDICATE_ID threshold=$THRESHOLD nonce=$NONCE subject_index=$S
 SUBJ_ARGS=(--subject-index "$SUBJECT_INDEX")
 [ -n "${SUBJECT_HEX:-}" ] && SUBJ_ARGS+=(--subject-hex "$SUBJECT_HEX")
 
+# Real issuer book from the backend, if configured (else the synthetic demo book).
+BOOK_ARGS=()
+if [ -n "${BACKEND_URL:-}" ] && [ -n "${PROVER_TOKEN:-}" ]; then
+  bold "=== fetch real issuer book from $BACKEND_URL ==="
+  curl -fsS "$BACKEND_URL/api/passport/leaves" -H "x-prover-token: $PROVER_TOKEN" \
+    -o "$ROOT/passport_book.json" || die "could not fetch passport book"
+  COUNT="$(grep -o '"subject"' "$ROOT/passport_book.json" | wc -l | tr -d ' ')"
+  echo "fetched $COUNT borrower records"
+  [ "$COUNT" -gt 0 ] || die "issuer book is empty — enrol a borrower first"
+  BOOK_ARGS=(--book-json "$ROOT/passport_book.json")
+fi
+
 # ---- 1. build + read image id / anchor (dry-run) ---------------------------
 bold "=== build + read image id / anchor ==="
 cd "$ROOT/guest"
 cargo build -p ballast-host --release --bin prove_passport
 DRY="$(cargo run -q -p ballast-host --release --bin prove_passport -- \
   --domain "$DOMAIN" --predicate-id "$PREDICATE_ID" --nonce "$NONCE" \
-  --threshold "$THRESHOLD" "${SUBJ_ARGS[@]}" --dry-run 2>/dev/null)"
+  --threshold "$THRESHOLD" "${SUBJ_ARGS[@]}" "${BOOK_ARGS[@]}" --dry-run 2>/dev/null)"
 IMAGE_ID="$(printf '%s\n' "$DRY" | sed -n 's/^IMAGE_ID=//p')"
 ANCHOR="$(printf '%s\n' "$DRY" | sed -n 's/^ROOT=//p')"
 SUBJECT="$(printf '%s\n' "$DRY" | sed -n 's/^SUBJECT=//p')"
@@ -114,7 +126,7 @@ bold "=== prove Groth16 (Docker stark->snark wrap) ==="
 cd "$ROOT/guest"
 cargo run -q -p ballast-host --release --bin prove_passport -- \
   --domain "$DOMAIN" --predicate-id "$PREDICATE_ID" --nonce "$NONCE" \
-  --threshold "$THRESHOLD" "${SUBJ_ARGS[@]}" --out "$OUT"
+  --threshold "$THRESHOLD" "${SUBJ_ARGS[@]}" "${BOOK_ARGS[@]}" --out "$OUT"
 cd "$ROOT"
 [ -f "$OUT" ] || die "proof not produced"
 JOURNAL="$(sed -n '1p' "$OUT")"

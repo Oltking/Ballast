@@ -63,6 +63,10 @@ jobs:
           THRESHOLD: ${{ inputs.threshold }}
           SUBJECT_INDEX: ${{ inputs.subject_index }}
           SUBJECT_HEX: ${{ inputs.subject_hex }}
+          # If set, the prover uses the REAL issuer book from the backend instead
+          # of the synthetic demo book. Unset → synthetic fallback.
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+          PROVER_TOKEN: ${{ secrets.PROVER_TOKEN }}
           RISC0_DEV_MODE: "0"
         run: bash scripts/passport_prove_submit.sh
 

@@ -24,6 +24,7 @@ use ballast_core::passport::{
     build_credit_root, eval_passport, prove_credit_inclusion, CreditRecord, PassportInputs,
 };
 use ballast_methods::{PASSPORT_ELF, PASSPORT_ID};
+use serde::Deserialize;
 use risc0_ethereum_contracts::encode_seal;
 use risc0_zkvm::sha::Digest;
 use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts};
@@ -39,9 +40,9 @@ fn hex32(s: &str) -> Result<[u8; 32]> {
     v.try_into().map_err(|_| anyhow!("expected 32 bytes"))
 }
 
-/// A small synthetic issuer book. In production this comes from the lending
-/// protocol's private store; here it's deterministic so the anchor (root) is
-/// reproducible across the register and prove steps.
+/// A small synthetic issuer book — used when no real book is provided. In
+/// production the book comes from the lending protocol's private store
+/// (`--book-json`, served by the backend); this keeps the demo reproducible.
 fn demo_book() -> Vec<CreditRecord> {
     let mk = |tag: u8, repaid: u32, defaults: u32| CreditRecord {
         subject: [tag; 32],
@@ -57,6 +58,40 @@ fn demo_book() -> Vec<CreditRecord> {
     ]
 }
 
+/// One borrower record as served by the backend `/api/passport/leaves` (hex
+/// subject/salt). Canonical order (backend sorts by subject), so the root the
+/// prover builds matches the issuer's published anchor.
+#[derive(Deserialize)]
+struct RecordJson {
+    subject: String,
+    repaid: u32,
+    defaults: u32,
+    salt: String,
+}
+
+#[derive(Deserialize)]
+struct BookJson {
+    records: Vec<RecordJson>,
+}
+
+fn read_book_file(path: &str) -> Result<Vec<CreditRecord>> {
+    let text = fs::read_to_string(path).with_context(|| format!("read book file {path}"))?;
+    let recs: Vec<RecordJson> = match serde_json::from_str::<BookJson>(&text) {
+        Ok(b) => b.records,
+        Err(_) => serde_json::from_str::<Vec<RecordJson>>(&text).context("parse book json")?,
+    };
+    recs.into_iter()
+        .map(|r| {
+            Ok(CreditRecord {
+                subject: hex32(&r.subject).context("record subject")?,
+                repaid: r.repaid,
+                defaults: r.defaults,
+                salt: hex32(&r.salt).context("record salt")?,
+            })
+        })
+        .collect()
+}
+
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
@@ -68,19 +103,43 @@ fn main() -> Result<()> {
     let out = arg(&args, "--out").unwrap_or_else(|| "proof_passport.txt".into());
     let dry_run = args.iter().any(|a| a == "--dry-run");
 
-    // Build the issuer book; optionally enrol a real wallet as the chosen
-    // good-standing borrower (the issuer vouching for that account).
-    let mut book = demo_book();
-    if subject_index >= book.len() {
-        return Err(anyhow!("--subject-index out of range (book has {})", book.len()));
-    }
-    if let Some(s) = arg(&args, "--subject-hex") {
-        book[subject_index].subject = hex32(&s)?;
-    }
+    // The issuer book. Prefer the REAL book from `--book-json` (served by the
+    // backend); else the synthetic demo book (optionally enrolling a real wallet
+    // as the chosen good-standing borrower).
+    let subject_hex = arg(&args, "--subject-hex");
+    let (book, index) = match arg(&args, "--book-json") {
+        Some(path) => {
+            let book = read_book_file(&path)?;
+            // Pick the record to prove: by --subject-hex if given, else index.
+            let idx = if let Some(s) = &subject_hex {
+                let want = hex32(s)?;
+                book
+                    .iter()
+                    .position(|r| r.subject == want)
+                    .ok_or_else(|| anyhow!("subject not enrolled in the issuer book"))?
+            } else {
+                subject_index
+            };
+            if idx >= book.len() {
+                return Err(anyhow!("subject index out of range (book has {})", book.len()));
+            }
+            (book, idx)
+        }
+        None => {
+            let mut book = demo_book();
+            if subject_index >= book.len() {
+                return Err(anyhow!("--subject-index out of range (book has {})", book.len()));
+            }
+            if let Some(s) = &subject_hex {
+                book[subject_index].subject = hex32(s)?;
+            }
+            (book, subject_index)
+        }
+    };
 
     let root = build_credit_root(&book);
     let image_id: [u8; 32] = Digest::from(PASSPORT_ID).as_bytes().try_into().unwrap();
-    let (record, path) = prove_credit_inclusion(&book, subject_index)
+    let (record, path) = prove_credit_inclusion(&book, index)
         .ok_or_else(|| anyhow!("inclusion proof build failed"))?;
 
     eprintln!("image id   : {}", hex::encode(image_id));
