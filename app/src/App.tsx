@@ -2,16 +2,19 @@ import { useEffect, useState } from "react";
 import PublicVerifier from "./pages/PublicVerifier.tsx";
 import CustomerDashboard from "./pages/CustomerDashboard.tsx";
 import IssuerDashboard from "./pages/IssuerDashboard.tsx";
+import CreditPassport from "./pages/CreditPassport.tsx";
 
-type Tab = "verify" | "account" | "issuer";
+type Tab = "verify" | "account" | "passport" | "issuer";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "verify", label: "Is my money safe?" },
   { id: "account", label: "My account" },
+  { id: "passport", label: "Credit Passport" },
   { id: "issuer", label: "For operators" },
 ];
 
-const isTab = (s: string): s is Tab => s === "verify" || s === "account" || s === "issuer";
+const isTab = (s: string): s is Tab =>
+  s === "verify" || s === "account" || s === "passport" || s === "issuer";
 const tabFromHash = (): Tab => {
   const h = window.location.hash.replace(/^#/, "");
   return isTab(h) ? h : "verify";
@@ -64,6 +67,7 @@ export default function App() {
 
       {tab === "verify" && <PublicVerifier />}
       {tab === "account" && <CustomerDashboard />}
+      {tab === "passport" && <CreditPassport />}
       {tab === "issuer" && <IssuerDashboard />}
 
       <footer className="foot">
