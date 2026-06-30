@@ -9,8 +9,17 @@
 //    by a shared PROVER_TOKEN header, never exposed to browsers.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { Keypair, StrKey } from "@stellar/stellar-sdk";
+import {
+  Account,
+  BASE_FEE,
+  Keypair,
+  Operation,
+  StrKey,
+  Transaction,
+  TransactionBuilder,
+} from "@stellar/stellar-sdk";
 import { getStore } from "./store.ts";
+import { NETWORK_PASSPHRASE } from "./chain.ts";
 
 export function json(res: VercelResponse, status: number, body: unknown): void {
   res.status(status).setHeader("content-type", "application/json");
@@ -41,28 +50,69 @@ export function isValidAddress(address: string): boolean {
   }
 }
 
-/** Issue a one-time challenge the client must sign to prove key ownership. */
-export async function issueChallenge(address: string): Promise<string> {
-  const nonce = `ballast-auth:${address}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+const CHALLENGE_DATA_NAME = "ballast-auth";
+
+/** Issue a one-time SEP-10-style challenge TRANSACTION the client signs with its
+ *  wallet (`signTransaction`, supported by every wallet — unlike `signMessage`).
+ *  The tx carries the nonce in a manage_data op and is never submittable
+ *  (sequence 0); we only verify the signature on it. */
+export async function issueChallenge(address: string): Promise<{ nonce: string; xdr: string }> {
+  const nonce = randHex(24); // ≤ 64 bytes for manage_data value
+  const tx = new TransactionBuilder(new Account(address, "0"), {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.manageData({ name: CHALLENGE_DATA_NAME, value: Buffer.from(nonce, "utf8") }),
+    )
+    .setTimeout(300)
+    .build();
   await getStore().putChallenge(address, nonce, 300);
-  return nonce;
+  return { nonce, xdr: tx.toXDR() };
 }
 
-export type AuthBody = { address?: string; nonce?: string; signature?: string };
+function randHex(bytes: number): string {
+  const a = new Uint8Array(bytes);
+  crypto.getRandomValues(a);
+  return Array.from(a).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
-/** Verify a signed challenge. Returns the authenticated address, or throws. */
+export type AuthBody = { address?: string; signedXdr?: string };
+
+/** Verify a signed challenge transaction. Returns the authenticated address, or
+ *  throws. Checks: source == address, the manage_data nonce matches the one we
+ *  issued (one-time), and a valid signature by the account's key over the tx. */
 export async function requireWalletAuth(body: AuthBody): Promise<string> {
-  const { address, nonce, signature } = body;
-  if (!address || !nonce || !signature) throw new HttpError(401, "missing auth fields");
+  const { address, signedXdr } = body;
+  if (!address || !signedXdr) throw new HttpError(401, "missing auth fields");
   if (!isValidAddress(address)) throw new HttpError(400, "bad address");
+
+  let tx;
+  try {
+    tx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+  } catch {
+    throw new HttpError(400, "bad challenge xdr");
+  }
+  if (!(tx instanceof Transaction)) throw new HttpError(400, "expected a plain transaction");
+  if (tx.source !== address) throw new HttpError(401, "challenge source mismatch");
+  const op = tx.operations.find(
+    (o) => o.type === "manageData" && o.name === CHALLENGE_DATA_NAME,
+  ) as { value?: Buffer } | undefined;
+  const nonce = op?.value ? op.value.toString("utf8") : "";
+  if (!nonce) throw new HttpError(401, "challenge nonce missing");
+
   const stored = await getStore().takeChallenge(address);
   if (!stored || stored !== nonce) throw new HttpError(401, "challenge expired or mismatched");
-  let ok = false;
-  try {
-    ok = Keypair.fromPublicKey(address).verify(Buffer.from(nonce, "utf8"), Buffer.from(signature, "base64"));
-  } catch {
-    ok = false;
-  }
+
+  const kp = Keypair.fromPublicKey(address);
+  const h = tx.hash();
+  const ok = tx.signatures.some((sig) => {
+    try {
+      return kp.verify(h, sig.signature());
+    } catch {
+      return false;
+    }
+  });
   if (!ok) throw new HttpError(401, "signature verification failed");
   return address;
 }
