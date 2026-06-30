@@ -1,0 +1,17 @@
+[package]
+name = "ballast-loanbook"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Ballast — on-chain loan ledger; the chain-derived source of credit history for the ZK Credit Passport"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

@@ -195,6 +195,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ballast-loanbook"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "ballast-registry"
 version = "0.1.0"
 dependencies = [
