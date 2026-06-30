@@ -21,6 +21,7 @@ import {
 } from "../lib/customer.ts";
 import { fetchAccountEvents, type ChainEvent } from "../lib/events.ts";
 import { hexToBytes, verifyInclusion, type InclusionProof } from "../lib/sumtree.ts";
+import { backendAvailable, getInclusion, openAccount, withdraw as backendWithdraw } from "../lib/backend.ts";
 import {
   CIRCLE_FAUCET_URL,
   ISSUER_NAME,
@@ -39,6 +40,12 @@ import CopyId from "../components/CopyId.tsx";
 import UsdcOnboard from "../components/UsdcOnboard.tsx";
 
 type Counted = "yes" | "no" | null;
+// Where the user's leaf comes from: the real operator backend, or the in-browser
+// simulation we fall back to before the operator provisions it.
+type AccountSource = "backend" | "sim";
+// When counted in the backend: is the same leaf already in the ON-CHAIN proven
+// attestation root, or only in the live book (folded into the next proof)?
+type CountedScope = "attested" | "live" | null;
 
 type ActKind = ClaimEvent["kind"];
 interface ActItem {
@@ -74,8 +81,15 @@ export default function CustomerDashboard() {
   const [vault, setVault] = useState<VaultState | null>(null);
 
   const [counted, setCounted] = useState<Counted>(null);
+  const [countedScope, setCountedScope] = useState<CountedScope>(null);
   const [tamper, setTamper] = useState(false);
   const [revealSalt, setRevealSalt] = useState(false);
+
+  // null while we probe /api/health; then true (real operator backend) or false
+  // (not provisioned → simulation). `accountSource` is the mode actually in use
+  // for the connected identity (demo always simulates).
+  const [backendOn, setBackendOn] = useState<boolean | null>(null);
+  const [accountSource, setAccountSource] = useState<AccountSource>("sim");
 
   const [depositAmt, setDepositAmt] = useState("100");
   const [withdrawAmt, setWithdrawAmt] = useState("25");
@@ -121,23 +135,81 @@ export default function CustomerDashboard() {
     }
   }, []);
 
-  // Recompute the fingerprint + inclusion proof whenever the claim changes.
-  const recompute = useCallback(async (c: StoredClaim) => {
-    const f = await fingerprintAndProof(c);
-    setFp(f);
-    setTamper(false);
-    setCounted(null);
+  // Recompute the simulated fingerprint + inclusion proof whenever the claim
+  // changes. In backend mode the proof comes from the operator (fetched on
+  // "Am I counted?"), so this only resets the local verdict — it never builds a
+  // fake book over the real leaf.
+  const recompute = useCallback(
+    async (c: StoredClaim) => {
+      setTamper(false);
+      setCounted(null);
+      setCountedScope(null);
+      if (accountSource === "backend") return;
+      setFp(await fingerprintAndProof(c));
+    },
+    [accountSource],
+  );
+
+  // Probe the operator backend once on mount (cached for the session).
+  useEffect(() => {
+    void backendAvailable()
+      .then(setBackendOn)
+      .catch(() => setBackendOn(false));
   }, []);
 
+  // Side data for the connected identity: provider solvency, on-chain activity,
+  // and (for real wallets) USDC onboarding status.
   useEffect(() => {
     if (!addr) return;
-    const c = getOrIssueClaim(addr);
-    setClaim(c);
-    void recompute(c);
     void refreshVault();
     void syncChain(addr);
     if (!isDemo) void checkUsdc(addr);
-  }, [addr, isDemo, recompute, refreshVault, syncChain, checkUsdc]);
+  }, [addr, isDemo, refreshVault, syncChain, checkUsdc]);
+
+  // Acquire the user's leaf once the backend probe has resolved. Real wallet +
+  // backend provisioned → open the real account (one wallet signature). Demo, or
+  // backend unavailable / sign rejected → in-browser simulation.
+  useEffect(() => {
+    if (!addr || backendOn === null) return;
+    let cancelled = false;
+    void (async () => {
+      if (!isDemo && backendOn) {
+        try {
+          const leaf = await openAccount(addr);
+          if (cancelled) return;
+          setAccountSource("backend");
+          setClaim({
+            address: addr,
+            salt: Array.from(hexToBytes(leaf.salt)),
+            balance: leaf.balance,
+            createdAt: Date.now(),
+            events: [],
+          });
+          setFp(null);
+          setCounted(null);
+          setCountedScope(null);
+          setTamper(false);
+          return;
+        } catch (e) {
+          if (cancelled) return;
+          setErr(errMsg(e));
+          // fall through to the simulation so the page still works
+        }
+      }
+      const c = getOrIssueClaim(addr);
+      if (cancelled) return;
+      setAccountSource("sim");
+      setClaim(c);
+      setCounted(null);
+      setCountedScope(null);
+      setTamper(false);
+      setFp(await fingerprintAndProof(c));
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addr, isDemo, backendOn]);
 
   // After sending the user to the external faucet, auto-resume the flow: poll
   // for the USDC and re-check whenever they return to this tab, so the moment
@@ -210,6 +282,8 @@ export default function CustomerDashboard() {
     setClaim(null);
     setFp(null);
     setCounted(null);
+    setCountedScope(null);
+    setAccountSource("sim");
     setLastTx(null);
     setIsDemo(false);
     setChain([]);
@@ -313,6 +387,30 @@ export default function CustomerDashboard() {
     }
     setErr(null);
 
+    // Real operator backend: you authorize with a wallet signature and the
+    // operator fulfils `withdraw_user(to=you, amount)` on-chain, paying your
+    // address. The returned balance is authoritative (debited server-side).
+    if (accountSource === "backend" && !isDemo) {
+      setBusy("withdraw");
+      setLastTx(null);
+      try {
+        const r = await backendWithdraw(addr, stroops.toString());
+        setLastTx(r.txHash);
+        const next = recordEvent(
+          { ...claim, balance: r.balance },
+          { kind: "withdraw", amount: stroops.toString(), ts: Date.now(), tx: r.txHash },
+        );
+        setClaim(next);
+        await refreshVault();
+        setTimeout(() => void syncChain(addr), 6000);
+      } catch (e) {
+        setErr(errMsg(e));
+      } finally {
+        setBusy(null);
+      }
+      return;
+    }
+
     // Redemptions are operator-orchestrated on-chain. If the connected wallet IS
     // the operator (demo persona), execute it for real; otherwise record the
     // request the operator would fulfil against its private book.
@@ -349,21 +447,48 @@ export default function CustomerDashboard() {
     setClaim(next);
   }
 
+  // bump the balance by 1 stroop — the tampered leaf no longer folds to root
+  function tamperProof(proof: InclusionProof): InclusionProof {
+    return {
+      ...proof,
+      leaf: { ...proof.leaf, balance: (BigInt(proof.leaf.balance) + 1n).toString() },
+    };
+  }
+
   async function checkCounted() {
-    if (!fp) return;
+    if (!addr || !claim) return;
     setBusy("counted");
+    setErr(null);
     try {
-      const root = hexToBytes(fp.root);
-      let proof = fp.proof;
-      if (tamper) {
-        // bump the balance by 1 stroop — the tampered leaf no longer folds to root
-        proof = {
-          ...fp.proof,
-          leaf: { ...fp.proof.leaf, balance: (BigInt(fp.proof.leaf.balance) + 1n).toString() },
-        };
+      if (accountSource === "backend") {
+        // Fetch the operator's inclusion proof for YOUR leaf, then verify it
+        // LOCALLY against both the live backend root and the on-chain proven
+        // attestation root — so the verdict is checked, not just asserted.
+        const incl = await getInclusion(addr);
+        if (!incl) {
+          setFp(null);
+          setCounted("no");
+          setCountedScope(null);
+          return;
+        }
+        setFp({ root: incl.root, total: 0n, proof: incl.proof });
+        const proof = tamper ? tamperProof(incl.proof) : incl.proof;
+        const okBackend = await verifyInclusion(proof, hexToBytes(incl.root));
+        const attRoot = vault?.attestation?.liabilities_root ?? null;
+        const okOnChain = attRoot ? await verifyInclusion(proof, attRoot) : false;
+        setCounted(okBackend ? "yes" : "no");
+        setCountedScope(okBackend ? (okOnChain ? "attested" : "live") : null);
+        return;
       }
-      const ok = await verifyInclusion(proof, root);
+
+      // Simulation: fold the locally-issued claim into the local fingerprint.
+      if (!fp) return;
+      const proof = tamper ? tamperProof(fp.proof) : fp.proof;
+      const ok = await verifyInclusion(proof, hexToBytes(fp.root));
       setCounted(ok ? "yes" : "no");
+      setCountedScope(null);
+    } catch (e) {
+      setErr(errMsg(e));
     } finally {
       setBusy(null);
     }
@@ -499,6 +624,22 @@ export default function CustomerDashboard() {
           a real wallet to deposit and request withdrawals on testnet.
         </div>
       )}
+      {!isDemo && backendOn !== null && accountSource === "sim" && (
+        <div className="banner">
+          🧪{" "}
+          {backendOn ? (
+            <>
+              <strong>Local simulation.</strong> Couldn't open your operator account — showing an
+              in-browser simulation of your private book for now.
+            </>
+          ) : (
+            <>
+              <strong>Operator backend not provisioned.</strong> Showing a local simulation of your
+              account — deposits and provider solvency are still real on-chain.
+            </>
+          )}
+        </div>
+      )}
       {wrongNetwork && (
         <div className="net-warn">
           <div className="net-warn-title">⚠ Your wallet is on {walletNetName} — switch it to <strong>Testnet</strong></div>
@@ -593,8 +734,17 @@ export default function CustomerDashboard() {
           </p>
         )}
         <p className="small muted mt">
-          Your provider then records this in its private ledger and re-issues your claim. <em>Here that
-          bookkeeping step is simulated in your browser</em> so you can see the whole lifecycle.
+          {accountSource === "backend" ? (
+            <>
+              Your provider's private book reconciles this deposit from on-chain custody and re-commits
+              its liabilities root — so your claim stays in the proof.
+            </>
+          ) : (
+            <>
+              Your provider then records this in its private ledger and re-issues your claim. <em>Here
+              that bookkeeping step is simulated in your browser</em> so you can see the whole lifecycle.
+            </>
+          )}
         </p>
       </div>
 
@@ -625,7 +775,9 @@ export default function CustomerDashboard() {
         </div>
         <div className="row mt">
           <button className="btn secondary" onClick={downloadClaim} disabled={!fp}>⤓ Download claim ticket</button>
-          <button className="btn secondary" onClick={resetClaim}>Reset claim</button>
+          {accountSource === "sim" && (
+            <button className="btn secondary" onClick={resetClaim}>Reset claim</button>
+          )}
         </div>
       </div>
 
@@ -633,19 +785,30 @@ export default function CustomerDashboard() {
       <div className="panel">
         <h2>Am I counted?</h2>
         <p className="sub">
-          Fold your claim up the tree and check it reproduces the public fingerprint — the same
-          SHA-256 sum-tree the zero-knowledge proof uses. Nobody else's balance is revealed.
+          {accountSource === "backend"
+            ? "The operator hands you the inclusion proof for your own leaf; your browser folds it up the tree to confirm it reproduces the published fingerprint — and checks it against the on-chain proven root. Nobody else's balance is revealed."
+            : "Fold your claim up the tree and check it reproduces the public fingerprint — the same SHA-256 sum-tree the zero-knowledge proof uses. Nobody else's balance is revealed."}
         </p>
 
         {counted === "yes" && (
           <div className="verdict solvent">
             <div className="dot" />
             <div>
-              <div className="big">✓ You're counted</div>
+              <div className="big">
+                {countedScope === "attested"
+                  ? "✓ Counted in the on-chain proof"
+                  : countedScope === "live"
+                    ? "✓ Counted in the live book"
+                    : "✓ You're counted"}
+              </div>
               <div className="note">
-                Your {fmtAmount(balance)} claim is committed under the fingerprint
-                <span className="mono"> {fp ? shortHex(fp.root, 8, 6) : ""}</span>. The custodian can't
-                drop you without changing the fingerprint everyone can see.
+                Your {fmtAmount(balance)} claim folds to the fingerprint
+                <span className="mono"> {fp ? shortHex(fp.root, 8, 6) : ""}</span>.{" "}
+                {countedScope === "attested"
+                  ? "That root matches the attestation proven on-chain — you are inside the latest solvency proof. The custodian can't drop you without changing a fingerprint everyone can see."
+                  : countedScope === "live"
+                    ? "This is the operator's live book; it differs from the last on-chain proof, so you'll be folded into the next attestation. The custodian can't drop you without changing a fingerprint everyone can see."
+                    : "The custodian can't drop you without changing the fingerprint everyone can see."}
               </div>
             </div>
           </div>
@@ -665,11 +828,15 @@ export default function CustomerDashboard() {
         )}
 
         <div className="row check-actions" style={{ justifyContent: "flex-start" }}>
-          <button className="btn primary" onClick={() => void checkCounted()} disabled={!fp || !!busy}>
+          <button
+            className="btn primary"
+            onClick={() => void checkCounted()}
+            disabled={!!busy || !claim || (accountSource === "sim" && !fp)}
+          >
             {busy === "counted" ? "Folding…" : "Check inclusion"}
           </button>
           <label className="inline-check">
-            <input type="checkbox" checked={tamper} onChange={(e) => { setTamper(e.target.checked); setCounted(null); }} />
+            <input type="checkbox" checked={tamper} onChange={(e) => { setTamper(e.target.checked); setCounted(null); setCountedScope(null); }} />
             simulate tampering
           </label>
         </div>
@@ -747,9 +914,11 @@ export default function CustomerDashboard() {
       <div className="panel">
         <h2>Withdraw</h2>
         <p className="sub">
-          {isOperator
-            ? "You're connected as the operator — redemptions execute on-chain directly."
-            : "Redemptions are operator-orchestrated: you request, and the custodian pays you out against its private book. Your right to exit is never gated by solvency or staleness."}
+          {accountSource === "backend"
+            ? "You authorize the redemption with a wallet signature; the operator fulfils it on-chain and pays your address against its private book. Your right to exit is never gated by solvency or staleness."
+            : isOperator
+              ? "You're connected as the operator — redemptions execute on-chain directly."
+              : "Redemptions are operator-orchestrated: you request, and the custodian pays you out against its private book. Your right to exit is never gated by solvency or staleness."}
         </p>
         <div className="op-control">
           <label className="field" style={{ marginBottom: 0 }}>
@@ -757,7 +926,11 @@ export default function CustomerDashboard() {
             <input type="text" value={withdrawAmt} onChange={(e) => setWithdrawAmt(e.target.value)} />
           </label>
           <button className="btn" disabled={!!busy} onClick={() => void requestWithdraw()}>
-            {busy === "withdraw" ? "Withdrawing…" : isOperator ? "Withdraw" : "Request withdrawal"}
+            {busy === "withdraw"
+              ? "Withdrawing…"
+              : accountSource === "backend" || isOperator
+                ? "Withdraw"
+                : "Request withdrawal"}
           </button>
         </div>
         {!isOperator && (
@@ -769,8 +942,18 @@ export default function CustomerDashboard() {
       </div>
 
       <p className="small muted center">
-        The leaf, salt and inclusion check run entirely in your browser — the same{" "}
-        <code>ballast-core</code> sum-tree as the RISC Zero guest, so they can never drift.
+        {accountSource === "backend" ? (
+          <>
+            Your inclusion check runs entirely in your browser — the same <code>ballast-core</code>{" "}
+            sum-tree as the RISC Zero guest — so the operator's proof and the on-chain root can never
+            drift.
+          </>
+        ) : (
+          <>
+            The leaf, salt and inclusion check run entirely in your browser — the same{" "}
+            <code>ballast-core</code> sum-tree as the RISC Zero guest, so they can never drift.
+          </>
+        )}
       </p>
     </>
   );

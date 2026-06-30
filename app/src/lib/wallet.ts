@@ -60,6 +60,22 @@ export async function connectWallet(): Promise<string> {
   });
 }
 
+/** Sign the operator backend's one-time auth challenge. The backend hands us a
+ *  never-submittable challenge TRANSACTION (manage_data nonce, sequence 0); the
+ *  wallet signs it with the same `signTransaction` path every wallet supports,
+ *  and the server verifies the ed25519 signature to authenticate the address.
+ *  Returns the signed XDR to POST back. */
+export async function signAuthChallenge(
+  challengeXdr: string,
+  address: string,
+): Promise<string> {
+  const { signedTxXdr } = await getKit().signTransaction(challengeXdr, {
+    address,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  });
+  return signedTxXdr;
+}
+
 /** Add a classic trustline (e.g. USDC) so the wallet can hold the asset.
  *  Builds a `changeTrust`, the wallet signs it, submitted via Horizon. */
 export async function addTrustline(
