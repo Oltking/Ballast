@@ -40,6 +40,14 @@ Prover/automation (`x-prover-token: <PROVER_TOKEN>`):
 - `POST /api/reconcile` — rebuild the book from on-chain custody (idempotent).
 - `GET /api/book-leaves` — the full private book (ordered leaves) for the prover.
 
+Credit-passport issuer:
+- `GET /api/passport/root` — published credit-record Merkle root (the registry anchor) + count. Public.
+- `GET /api/passport/record?subject=<hex>` — minimal: is this subject enrolled. Public (counts stay private).
+- `POST /api/passport/enroll` `{address, repaid, defaults}` (`x-prover-token`) — issuer records a borrower's history; returns the new root.
+- `GET /api/passport/leaves` (`x-prover-token`) — full issuer book (ordered records) for the passport prover.
+
+The prover/CI integration: `scripts/prove_and_post.sh` and `scripts/passport_prove_submit.sh` pull the real book(s) when `BACKEND_URL` + `PROVER_TOKEN` are set (else synthetic fallback). The sum-tree / credit-tree roots are byte-identical between this TS backend and the Rust guest (verified), so the proofs bind exactly what the backend publishes.
+
 ## Trust / security notes
 - The operator key lives only on the server; users authorize redemptions with a
   wallet signature over a one-time challenge, and funds are always paid to the
