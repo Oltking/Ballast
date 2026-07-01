@@ -4,5 +4,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/" }]
+  "rewrites": [
+    { "source": "/api/passport/:action", "destination": "/api/passport?action=:action" },
+    { "source": "/((?!api/).*)", "destination": "/" }
+  ]
 }
