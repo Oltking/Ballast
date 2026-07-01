@@ -1,10 +1,13 @@
 // Shared Ballast shell for every route: brand header, top nav, live-network
 // chip, and footer. Pages render into <Outlet/>.
 import { Link, NavLink, Outlet } from "react-router-dom";
+import { useWallet } from "./lib/wallet-context.tsx";
+import { shortHex } from "./lib/format.ts";
 
 const nav = ({ isActive }: { isActive: boolean }) => (isActive ? "active" : "");
 
 export default function Layout() {
+  const { address, connecting, connect, disconnect } = useWallet();
   return (
     <div className="app">
       <header className="top">
@@ -31,6 +34,19 @@ export default function Layout() {
               Proof
             </NavLink>
           </nav>
+          {address ? (
+            <span className="wallet-chip">
+              <span className="wallet-dot" />
+              {shortHex(address, 6, 6)}
+              <button className="linklike" onClick={disconnect}>
+                Disconnect
+              </button>
+            </span>
+          ) : (
+            <button className="btn small" onClick={() => void connect()} disabled={connecting}>
+              {connecting ? "Connecting…" : "Connect wallet"}
+            </button>
+          )}
         </div>
       </header>
 

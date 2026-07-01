@@ -6,13 +6,13 @@ import {
   loadVaultState,
   type VaultState,
 } from "../lib/stellar.ts";
-import { addTrustline, connectWallet, getWalletNetwork, invoke } from "../lib/wallet.ts";
+import { addTrustline, invoke } from "../lib/wallet.ts";
+import { useWallet } from "../lib/wallet-context.tsx";
 import { fundWithFriendbot, usdcReady, usdcStatus, type UsdcStatus } from "../lib/assets.ts";
 import {
   claimLeaf,
   fingerprintAndProof,
   getOrIssueClaim,
-  isValidAddress,
   recordEvent,
   saveClaim,
   toStroops,
@@ -25,7 +25,6 @@ import { backendAvailable, getInclusion, openAccount, withdraw as backendWithdra
 import {
   CIRCLE_FAUCET_URL,
   ISSUER_NAME,
-  NETWORK_PASSPHRASE,
   SIM_SOURCE,
   USDC_CODE,
   USDC_ISSUER,
@@ -74,8 +73,19 @@ function providerVerdict(v: VaultState | null): { pill: string; cls: string; lin
 }
 
 export default function CustomerDashboard() {
-  const [addr, setAddr] = useState<string | null>(null);
+  // Wallet connection now lives in the shared context — connect once (here or in
+  // any other section) and this page sees the account with no re-prompt. Demo
+  // mode stays local: it's an in-browser persona, not a real wallet connection.
+  const {
+    address: walletAddress,
+    walletNet,
+    wrongNetwork: netMismatch,
+    connect: connectWalletCtx,
+    disconnect: disconnectWallet,
+    refreshNetwork,
+  } = useWallet();
   const [isDemo, setIsDemo] = useState(false);
+  const addr = isDemo ? SIM_SOURCE : walletAddress;
   const [claim, setClaim] = useState<StoredClaim | null>(null);
   const [fp, setFp] = useState<Fp | null>(null);
   const [vault, setVault] = useState<VaultState | null>(null);
@@ -102,7 +112,6 @@ export default function CustomerDashboard() {
 
   const [usdc, setUsdc] = useState<UsdcStatus | null>(null);
   const [waitingForUsdc, setWaitingForUsdc] = useState(false);
-  const [walletNet, setWalletNet] = useState<string | null>(null);
 
   // Check whether this wallet is XLM-funded, holds a USDC trustline, and its
   // balance — so we can guide the user to claim test USDC before depositing.
@@ -255,30 +264,22 @@ export default function CustomerDashboard() {
   function beginDemo() {
     setErr(null);
     setIsDemo(true);
-    setAddr(SIM_SOURCE);
   }
 
   async function connect() {
     setErr(null);
-    try {
-      const a = await connectWallet();
-      if (!isValidAddress(a)) throw new Error("unexpected wallet address");
-      setIsDemo(false);
-      setAddr(a);
-      setWalletNet(await getWalletNetwork());
-    } catch (e) {
-      setErr(errMsg(e));
-    }
+    setIsDemo(false);
+    await connectWalletCtx();
   }
 
   // Re-read the wallet's network (after the user switches it to Testnet).
   async function recheckNetwork() {
-    setWalletNet(await getWalletNetwork());
+    await refreshNetwork();
     if (addr) void checkUsdc(addr);
   }
 
   function disconnect() {
-    setAddr(null);
+    disconnectWallet();
     setClaim(null);
     setFp(null);
     setCounted(null);
@@ -289,7 +290,6 @@ export default function CustomerDashboard() {
     setChain([]);
     setUsdc(null);
     setWaitingForUsdc(false);
-    setWalletNet(null);
   }
 
   const operator = vault?.config.operator ?? null;
@@ -530,8 +530,8 @@ export default function CustomerDashboard() {
   const pv = providerVerdict(vault);
   // The wallet is pointed at a different network than this testnet app — every
   // tx it signs will be rejected by testnet Horizon until the user switches.
-  const wrongNetwork = !isDemo && !!walletNet && walletNet !== NETWORK_PASSPHRASE;
-  const walletNetName = walletNet?.startsWith("Public") ? "Mainnet (Public)" : walletNet ? "a non-testnet network" : "";
+  const wrongNetwork = !isDemo && netMismatch;
+  const walletNetName = walletNet.startsWith("Public") ? "Mainnet (Public)" : walletNet ? "a non-testnet network" : "";
   const balance = claim ? BigInt(claim.balance) : 0n;
   const acctHex = useMemo(() => (claim ? bytesToHex(claimLeaf(claim).account) : ""), [claim]);
   const saltHex = useMemo(() => (claim ? bytesToHex(claim.salt) : ""), [claim]);

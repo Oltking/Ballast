@@ -5,8 +5,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { nativeToScVal } from "@stellar/stellar-sdk";
 import { addressArg } from "../lib/stellar.ts";
-import { connectWallet, getWalletNetwork, invoke } from "../lib/wallet.ts";
-import { isValidAddress, toStroops } from "../lib/customer.ts";
+import { invoke } from "../lib/wallet.ts";
+import { useWallet } from "../lib/wallet-context.tsx";
+import { toStroops } from "../lib/customer.ts";
 import {
   borrow as backendBorrow,
   getHealth,
@@ -14,7 +15,7 @@ import {
   repay as backendRepay,
   type LoanStats,
 } from "../lib/backend.ts";
-import { ISSUER_NAME, NETWORK_PASSPHRASE, USDC_SAC, txUrl } from "../lib/config.ts";
+import { ISSUER_NAME, USDC_SAC, txUrl } from "../lib/config.ts";
 import { errMsg, fmtAmount, shortHex } from "../lib/format.ts";
 
 // 100 USDC per-loan cap (mirrors the backend MAX_LOAN).
@@ -26,8 +27,16 @@ interface LastTx {
 }
 
 export default function Loans() {
-  const [addr, setAddr] = useState<string | null>(null);
-  const [walletNet, setWalletNet] = useState<string | null>(null);
+  // Wallet connection comes from the shared context — connect once anywhere and
+  // this section is already connected, no second prompt.
+  const {
+    address: addr,
+    walletNet,
+    wrongNetwork,
+    connect,
+    disconnect: disconnectWallet,
+    refreshNetwork,
+  } = useWallet();
   const [operator, setOperator] = useState<string | null>(null);
 
   const [stats, setStats] = useState<LoanStats | null>(null);
@@ -39,8 +48,7 @@ export default function Loans() {
   const [note, setNote] = useState<string | null>(null);
   const [lastTx, setLastTx] = useState<LastTx | null>(null);
 
-  const wrongNetwork = !!walletNet && walletNet !== NETWORK_PASSPHRASE;
-  const walletNetName = walletNet?.startsWith("Public") ? "Mainnet (Public)" : "a non-testnet network";
+  const walletNetName = walletNet.startsWith("Public") ? "Mainnet (Public)" : "a non-testnet network";
 
   const refreshStats = useCallback(async (a: string) => {
     try {
@@ -50,26 +58,8 @@ export default function Loans() {
     }
   }, []);
 
-  // Self-connect: match CustomerDashboard's wallet-connect pattern.
-  async function connect() {
-    setErr(null);
-    try {
-      const a = await connectWallet();
-      if (!isValidAddress(a)) throw new Error("unexpected wallet address");
-      setAddr(a);
-      setWalletNet(await getWalletNetwork());
-    } catch (e) {
-      setErr(errMsg(e));
-    }
-  }
-
-  async function recheckNetwork() {
-    setWalletNet(await getWalletNetwork());
-  }
-
   function disconnect() {
-    setAddr(null);
-    setWalletNet(null);
+    disconnectWallet();
     setStats(null);
     setLastTx(null);
     setNote(null);
@@ -192,7 +182,7 @@ export default function Loans() {
             This app runs entirely on the Stellar <strong>test</strong> network (play money). Change
             your wallet's network to <strong>Testnet</strong>, then re-check.
           </p>
-          <button className="btn small" onClick={() => void recheckNetwork()}>I've switched — re-check</button>
+          <button className="btn small" onClick={() => void refreshNetwork()}>I've switched — re-check</button>
         </div>
       )}
       {err && <div className="error">⚠ {err}</div>}

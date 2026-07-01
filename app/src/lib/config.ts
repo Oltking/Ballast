@@ -23,6 +23,13 @@ export const REGISTRY_DOMAIN =
 // borrower (repaid, defaults) records from.
 export const LOANBOOK_ID =
   "CBIUJ4CFSUIZNZWRUPDD5E3TL2G5VYQO6KF26J6DKS2MBU3LBIS4KRTB";
+// ZK lending pool — a provably-solvent vault whose assets = cash + outstanding
+// loans, so the SAME solvency proof guarantees lenders are covered. Lenders'
+// positions are private; borrowing is gated by the ZK Credit Passport.
+export const POOL_ID =
+  "CBHRVLIQVELF35DSPR2EY6MIJ72WW35IDHN52HXEHSMKRBG25R7FAPVA";
+export const POOL_DOMAIN =
+  "4f1aad10a9165df4727c744c79884ff56b6fa819dbdd1ee43c98a884daec7e50";
 export const USDC_SAC =
   "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
 // The classic asset the SAC wraps (Circle testnet USDC, home_domain centre.io).

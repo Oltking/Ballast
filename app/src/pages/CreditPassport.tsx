@@ -11,7 +11,7 @@ import {
   type RegistryConfig,
 } from "../lib/registry.ts";
 import { server } from "../lib/stellar.ts";
-import { connectWallet } from "../lib/wallet.ts";
+import { useWallet } from "../lib/wallet-context.tsx";
 import { REGISTRY_ID, VERIFIER_ROUTER, contractUrl } from "../lib/config.ts";
 import { bytesToHex, errMsg, shortHex, shortId } from "../lib/format.ts";
 import CopyId from "../components/CopyId.tsx";
@@ -342,13 +342,26 @@ export default function CreditPassport() {
 // ---- "Check any account" sub-surface ----
 
 function CheckAny() {
+  // Reuse the shared wallet connection — if you already connected in another
+  // section, "Use my connected wallet" fills instantly with no second prompt.
+  const { address, connect } = useWallet();
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [fillOnConnect, setFillOnConnect] = useState(false);
   const [result, setResult] = useState<
     | { subjectHex: string; valid: boolean; cred: CredentialInfo | null }
     | null
   >(null);
+
+  // When the user asked to use their wallet but wasn't connected yet, fill the
+  // input as soon as the shared connection lands.
+  useEffect(() => {
+    if (fillOnConnect && address) {
+      setInput(address);
+      setFillOnConnect(false);
+    }
+  }, [fillOnConnect, address]);
 
   const subjectHex = useMemo(() => {
     const s = input.trim();
@@ -363,14 +376,14 @@ function CheckAny() {
     return null;
   }, [input]);
 
-  async function useWallet() {
+  async function useConnectedWallet() {
     setErr(null);
-    try {
-      const a = await connectWallet();
-      setInput(a);
-    } catch (e) {
-      setErr(errMsg(e));
+    if (address) {
+      setInput(address);
+      return;
     }
+    setFillOnConnect(true);
+    await connect();
   }
 
   async function check() {
@@ -416,7 +429,7 @@ function CheckAny() {
         </button>
       </div>
       <p className="small muted mt">
-        <button className="linklike" style={{ paddingLeft: 0 }} onClick={() => void useWallet()}>
+        <button className="linklike" style={{ paddingLeft: 0 }} onClick={() => void useConnectedWallet()}>
           Use my connected wallet
         </button>
         {subjectHex && (
