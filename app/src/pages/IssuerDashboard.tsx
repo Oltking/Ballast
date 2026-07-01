@@ -1,18 +1,34 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Address, nativeToScVal } from "@stellar/stellar-sdk";
 import {
+  addressArg,
   isEnforced,
   isWindDown,
   loadVaultState,
+  readView,
   type VaultState,
 } from "../lib/stellar.ts";
 import { addTrustline, connectWallet, invoke } from "../lib/wallet.ts";
 import { fundWithFriendbot, usdcReady, usdcStatus, type UsdcStatus } from "../lib/assets.ts";
 import { buildSumTree, hex, type Leaf } from "../lib/sumtree.ts";
 import {
+  getHealth,
+  getPassportRoot,
+  getPublicBook,
+  proveTrigger,
+  reconcileBook,
+  reconcilePassport,
+  type Health,
+  type PassportRoot,
+  type ProveWorkflow,
+  type PublicBook,
+} from "../lib/backend.ts";
+import {
   CIRCLE_FAUCET_URL,
+  contractUrl,
   ISSUER_INITIAL,
   ISSUER_NAME,
+  LOANBOOK_ID,
   RESERVE_DECIMALS,
   USDC_CODE,
   USDC_ISSUER,
@@ -44,6 +60,14 @@ function genBook(count: number): Leaf[] {
   return out;
 }
 
+// Decoded shape of the loan-book `stats(borrower)` view.
+type LoanStats = {
+  outstanding: bigint;
+  repaid_count: number;
+  default_count: number;
+  disbursed_count: number;
+};
+
 function toStroops(usdc: string): bigint {
   const [w, f = ""] = usdc.trim().split(".");
   const frac = (f + "0".repeat(RESERVE_DECIMALS)).slice(0, RESERVE_DECIMALS);
@@ -67,12 +91,30 @@ export default function IssuerDashboard() {
   const [depositAmt, setDepositAmt] = useState("100");
   const [withdrawAmt, setWithdrawAmt] = useState("10");
 
+  // ---- custodian backend + on-chain loan-book (operator control surface) ----
+  const [health, setHealth] = useState<Health | null>(null);
+  const [pubBook, setPubBook] = useState<PublicBook | null>(null);
+  const [passport, setPassport] = useState<PassportRoot | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+
+  const [borrower, setBorrower] = useState("");
+  const [loanAmt, setLoanAmt] = useState("100");
+  const [stats, setStats] = useState<LoanStats | null>(null);
+
   const refresh = useCallback(async () => {
     try {
       setState(await loadVaultState());
     } catch (e) {
       setErr(errMsg(e));
     }
+  }, []);
+
+  const refreshBackend = useCallback(async () => {
+    // Each read degrades independently so a down endpoint never blanks the page.
+    const [h, b, p] = await Promise.allSettled([getHealth(), getPublicBook(), getPassportRoot()]);
+    setHealth(h.status === "fulfilled" ? h.value : null);
+    setPubBook(b.status === "fulfilled" ? b.value : null);
+    setPassport(p.status === "fulfilled" ? p.value : null);
   }, []);
 
   const checkUsdc = useCallback(async (a: string) => {
@@ -85,7 +127,8 @@ export default function IssuerDashboard() {
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    void refreshBackend();
+  }, [refresh, refreshBackend]);
 
   // The largest customer ("the whale") — highlighted and droppable in the demo.
   const whaleIdx = useMemo(() => {
@@ -130,7 +173,12 @@ export default function IssuerDashboard() {
     }
   }
 
-  async function doInvoke(label: string, method: string, args: ReturnType<typeof nativeToScVal>[]) {
+  async function doInvoke(
+    label: string,
+    method: string,
+    args: ReturnType<typeof nativeToScVal>[],
+    contractId?: string,
+  ) {
     if (!addr) {
       setErr("connect a wallet first");
       return;
@@ -139,7 +187,7 @@ export default function IssuerDashboard() {
     setErr(null);
     setLastTx(null);
     try {
-      const hash = await invoke(addr, method, args);
+      const hash = await invoke(addr, method, args, contractId);
       setLastTx(hash);
       await refresh();
       void checkUsdc(addr);
@@ -148,6 +196,78 @@ export default function IssuerDashboard() {
     } finally {
       setBusy(null);
     }
+  }
+
+  // ---- custodian backend / loan-book handlers ----
+  async function runBackend(label: string, fn: () => Promise<string>) {
+    setBusy(label);
+    setErr(null);
+    setNote(null);
+    try {
+      setNote(await fn());
+      await refreshBackend();
+    } catch (e) {
+      setErr(errMsg(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function doReconcileBook() {
+    if (!addr) return void setErr("connect the operator wallet first");
+    void runBackend("reconcile", async () => {
+      const r = await reconcileBook(addr);
+      return `Book reconciled — ${r.count} customers, total L ${fmtAmount(BigInt(r.total || "0"))}, root ${shortHex(r.root, 10, 6)}.`;
+    });
+  }
+
+  function doReconcilePassport() {
+    if (!addr) return void setErr("connect the operator wallet first");
+    void runBackend("passport-reconcile", async () => {
+      const r = await reconcilePassport(addr);
+      return `Passport synced from loan-book — ${r.count} records, anchor ${shortHex(r.root, 10, 6)}.`;
+    });
+  }
+
+  function doProve(workflow: ProveWorkflow) {
+    void runBackend(`prove-${workflow}`, async () => {
+      const r = await proveTrigger(workflow);
+      if (r.triggered) {
+        return `Re-prove (${workflow}) queued on CI — a fresh proof takes ~20 min, then posts on-chain.`;
+      }
+      return `Not triggered${r.reason ? ` — ${r.reason === "debounced" ? "debounced (a proof ran recently)" : r.reason}` : ""}.`;
+    });
+  }
+
+  async function lookupStats() {
+    if (!borrower.trim()) return void setErr("enter a borrower G-address");
+    setBusy("stats");
+    setErr(null);
+    setStats(null);
+    try {
+      const raw = (await readView("stats", [addressArg(borrower.trim())], LOANBOOK_ID)) as
+        | Record<string, unknown>
+        | null;
+      if (!raw) throw new Error("no stats returned");
+      setStats({
+        outstanding: BigInt((raw.outstanding as bigint | number | string) ?? 0),
+        repaid_count: Number(raw.repaid_count ?? 0),
+        default_count: Number(raw.default_count ?? 0),
+        disbursed_count: Number(raw.disbursed_count ?? 0),
+      });
+    } catch (e) {
+      setErr(errMsg(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function loanInvoke(label: string, method: string, withAmount: boolean) {
+    if (!borrower.trim()) return void setErr("enter a borrower G-address");
+    const args = withAmount
+      ? [addressArg(borrower.trim()), nativeToScVal(toStroops(loanAmt), { type: "i128" })]
+      : [addressArg(borrower.trim())];
+    void doInvoke(label, method, args, LOANBOOK_ID);
   }
 
   // ---- USDC onboarding actions (operator deposits USDC too) ----
@@ -193,6 +313,10 @@ export default function IssuerDashboard() {
   const isAdmin = !!addr && !!state && addr === state.config.admin;
   const att = state?.attestation ?? null;
   const attAge = state && att ? state.latestLedger - att.ledger : null;
+
+  // Backend provisioning + whether the connected wallet matches its admin signer.
+  const backendReady = !!health && health.durableStore && health.operatorConfigured;
+  const backendOpMismatch = !!addr && !!health?.operator && addr !== health.operator;
 
   // Predicted verdict for the current book against live chain numbers.
   const predicted = useMemo(() => {
@@ -241,6 +365,7 @@ export default function IssuerDashboard() {
           <a href={txUrl(lastTx)} target="_blank" rel="noreferrer" className="mono">{shortHex(lastTx, 10, 6)}</a>
         </div>
       )}
+      {note && <div className="tx-ok">✓ {note}</div>}
 
       {addr && !isOperator && !isAdmin && (
         <div className="banner">
@@ -366,6 +491,233 @@ export default function IssuerDashboard() {
           In Enforced mode an over-floor or stale withdrawal <strong>reverts on-chain</strong> — that
           revert is the enforcement (no trusted signer could refuse the operator).
           {!isOperator && addr && " Withdrawals need the operator wallet."}
+        </p>
+      </div>
+
+      {/* backend status strip */}
+      <div className="panel">
+        <h2>Custodian backend</h2>
+        <p className="sub">
+          Live status of the operator service (<code>/api</code>) that holds the private book and
+          derives the credit passport. Admin actions below are wallet-signed and only accepted from
+          the backend's configured operator address.
+        </p>
+        {!health ? (
+          <div className="banner">
+            ⚠ Backend unreachable. It isn't provisioned yet (Redis + <code>OPERATOR_SECRET</code>), so
+            the reconcile / prove actions are disabled. The rest of the page still works off-chain.
+          </div>
+        ) : (
+          <>
+            <div className="grid">
+              <div className="stat">
+                <div className="label">Durable store</div>
+                <div className="value">
+                  <span className={`pill ${health.durableStore ? "green" : "red"}`}>
+                    {health.durableStore ? "READY" : "MISSING"}
+                  </span>
+                </div>
+              </div>
+              <div className="stat">
+                <div className="label">Operator signer</div>
+                <div className="value">
+                  <span className={`pill ${health.operatorConfigured ? "green" : "red"}`}>
+                    {health.operatorConfigured ? "CONFIGURED" : "UNSET"}
+                  </span>
+                </div>
+              </div>
+              <div className="stat">
+                <div className="label">Prover token</div>
+                <div className="value">
+                  <span className={`pill ${health.proverTokenSet ? "green" : "amber"}`}>
+                    {health.proverTokenSet ? "SET" : "UNSET"}
+                  </span>
+                </div>
+              </div>
+              <div className="stat">
+                <div className="label">Operator address</div>
+                <div className="value mono" style={{ fontSize: 14 }}>
+                  {health.operator ? shortHex(health.operator, 6, 6) : "—"}
+                </div>
+              </div>
+            </div>
+            {backendOpMismatch && (
+              <div className="banner mt">
+                ⚠ The connected wallet ({shortHex(addr!, 6, 6)}) is <strong>not</strong> the backend's
+                operator ({shortHex(health.operator!, 6, 6)}). Admin actions (reconcile / passport sync)
+                will be rejected — connect the operator wallet to run them.
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* custodian book panel */}
+      <div className="panel">
+        <h2>Custodian book</h2>
+        <p className="sub">
+          The private per-user ledger the backend proves over. Individual balances stay hidden; only
+          the liabilities root and totals below are ever published.
+        </p>
+        {pubBook ? (
+          <div className="grid">
+            <div className="stat">
+              <div className="label">liabilities_root</div>
+              <div className="value mono" style={{ fontSize: 14 }}>{shortHex(pubBook.liabilitiesRoot, 12, 6)}</div>
+            </div>
+            <div className="stat">
+              <div className="label">Total L (liabilities)</div>
+              <div className="value">{fmtAmount(BigInt(pubBook.total || "0"))}</div>
+            </div>
+            <div className="stat">
+              <div className="label">Customers</div>
+              <div className="value">{pubBook.count.toLocaleString()}</div>
+            </div>
+            <div className="stat">
+              <div className="label">Reserves (on-chain)</div>
+              <div className="value">{fmtAmount(BigInt(pubBook.reserves || "0"))}</div>
+            </div>
+            <div className="stat">
+              <div className="label">net_custodied (floor)</div>
+              <div className="value">{fmtAmount(BigInt(pubBook.netCustodied || "0"))}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="banner">The book endpoint is unavailable — backend not provisioned yet.</div>
+        )}
+        <div className="op-control mt">
+          <button
+            className="btn"
+            disabled={!!busy || !backendReady || !addr}
+            title={!backendReady ? "backend not provisioned" : !addr ? "connect the operator wallet" : undefined}
+            onClick={doReconcileBook}
+          >
+            {busy === "reconcile" ? "…" : "Reconcile book"}
+          </button>
+          <button
+            className="btn secondary"
+            disabled={!!busy || !health}
+            title={!health ? "backend not provisioned" : undefined}
+            onClick={() => doProve("solvency")}
+          >
+            {busy === "prove-solvency" ? "…" : "Re-prove solvency"}
+          </button>
+        </div>
+        <p className="small muted mt">
+          <strong>Reconcile</strong> rebuilds the private book from real on-chain custody and re-commits
+          the root (admin-signed). <strong>Re-prove</strong> nudges the CI prover — a real RISC Zero
+          proof takes ~20 min, then <code>post_attestation</code> lands it on-chain.
+        </p>
+      </div>
+
+      {/* credit / loan-book panel */}
+      <div className="panel">
+        <h2>Credit / loan-book</h2>
+        <p className="sub">
+          Record loan activity on the on-chain loan-book (<code>{shortHex(LOANBOOK_ID, 6, 6)}</code>) — the
+          credit-history source the ZK Credit Passport is derived from. Each action is a wallet-signed
+          contract call.{" "}
+          <a href={contractUrl(LOANBOOK_ID)} target="_blank" rel="noreferrer">view contract ↗</a>
+        </p>
+        <label className="field">
+          <span>Borrower (G-address)</span>
+          <input
+            type="text"
+            value={borrower}
+            placeholder="G…"
+            onChange={(e) => setBorrower(e.target.value)}
+          />
+        </label>
+        <div className="op-controls">
+          <div className="op-control">
+            <label className="field" style={{ marginBottom: 0 }}>
+              <span>Amount (USDC)</span>
+              <input type="text" value={loanAmt} onChange={(e) => setLoanAmt(e.target.value)} />
+            </label>
+            <button
+              className="btn"
+              disabled={!!busy || !addr}
+              onClick={() => loanInvoke("disburse", "disburse", true)}
+            >
+              {busy === "disburse" ? "…" : "Disburse"}
+            </button>
+          </div>
+          <div className="op-control">
+            <button
+              className="btn secondary"
+              disabled={!!busy || !addr}
+              onClick={() => loanInvoke("repay", "repay", true)}
+            >
+              {busy === "repay" ? "…" : "Repay"}
+            </button>
+            <button
+              className="btn danger"
+              disabled={!!busy || !addr}
+              onClick={() => loanInvoke("default", "mark_default", false)}
+            >
+              {busy === "default" ? "…" : "Mark default"}
+            </button>
+            <button
+              className="btn secondary"
+              disabled={!!busy || !borrower.trim()}
+              onClick={() => void lookupStats()}
+            >
+              {busy === "stats" ? "…" : "Look up stats"}
+            </button>
+          </div>
+        </div>
+
+        {stats && (
+          <div className="grid mt">
+            <div className="stat">
+              <div className="label">Outstanding</div>
+              <div className="value">{fmtAmount(stats.outstanding)}</div>
+            </div>
+            <div className="stat">
+              <div className="label">Repaid</div>
+              <div className="value">{stats.repaid_count.toLocaleString()}</div>
+            </div>
+            <div className="stat">
+              <div className="label">Defaults</div>
+              <div className="value">{stats.default_count.toLocaleString()}</div>
+            </div>
+            <div className="stat">
+              <div className="label">Disbursed</div>
+              <div className="value">{stats.disbursed_count.toLocaleString()}</div>
+            </div>
+          </div>
+        )}
+
+        <div className="op-control mt">
+          <button
+            className="btn"
+            disabled={!!busy || !backendReady || !addr}
+            title={!backendReady ? "backend not provisioned" : !addr ? "connect the operator wallet" : undefined}
+            onClick={doReconcilePassport}
+          >
+            {busy === "passport-reconcile" ? "…" : "Sync passport from loan-book"}
+          </button>
+          <button
+            className="btn secondary"
+            disabled={!!busy || !health}
+            title={!health ? "backend not provisioned" : undefined}
+            onClick={() => doProve("passport")}
+          >
+            {busy === "prove-passport" ? "…" : "Re-prove passport"}
+          </button>
+        </div>
+        <p className="small muted mt">
+          Published credit anchor:{" "}
+          {passport ? (
+            <>
+              <span className="mono">{shortHex(passport.root, 12, 6)}</span> ·{" "}
+              {passport.count.toLocaleString()} records
+            </>
+          ) : (
+            <span className="muted">unavailable</span>
+          )}
+          . <strong>Sync</strong> derives (repaid, defaults) records from the loan-book and re-anchors
+          the root (admin-signed); <strong>Re-prove</strong> queues the passport proof on CI (~20 min).
         </p>
       </div>
 

@@ -63,6 +63,35 @@ export interface WithdrawResult {
   balance: string;
 }
 
+/** The published credit anchor (Merkle root over the passport records). */
+export interface PassportRoot {
+  root: string;
+  count: number;
+}
+
+/** Result of rebuilding the private liabilities book from on-chain custody. */
+export interface ReconcileResult {
+  updated: number;
+  root: string;
+  total: string;
+  count: number;
+}
+
+/** Result of deriving passport credit records from the loan-book. */
+export interface PassportReconcileResult {
+  updated: number;
+  root: string;
+  count: number;
+}
+
+/** Result of nudging the CI prover (debounced server-side). */
+export interface ProveTriggerResult {
+  triggered: boolean;
+  reason?: string;
+}
+
+export type ProveWorkflow = "solvency" | "passport";
+
 interface ApiError extends Error {
   status?: number;
   data?: unknown;
@@ -90,6 +119,28 @@ export async function getPublicBook(): Promise<PublicBook> {
 
 export async function getAccountPublic(subject: string): Promise<AccountPublic> {
   return getJson<AccountPublic>(`/account?subject=${encodeURIComponent(subject)}`);
+}
+
+/** The published credit anchor (Merkle root + record count) for the passport. */
+export async function getPassportRoot(): Promise<PassportRoot> {
+  return getJson<PassportRoot>("/passport/root");
+}
+
+/** POST with no auth (public trigger). Shares the ApiError handling of getJson. */
+async function postJson<T>(path: string, body: Record<string, unknown> = {}): Promise<T> {
+  const r = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!r.ok) {
+    const err: ApiError = new Error(String(data?.error ?? `request failed (${r.status})`));
+    err.status = r.status;
+    err.data = data;
+    throw err;
+  }
+  return data as T;
 }
 
 let availability: Promise<boolean> | null = null;
@@ -157,4 +208,40 @@ export async function getInclusion(address: string): Promise<InclusionResult | n
  *  on-chain and pays your authenticated address. `amountStroops` is a string. */
 export async function withdraw(address: string, amountStroops: string): Promise<WithdrawResult> {
   return authPost<WithdrawResult>("/withdraw", address, { amount: amountStroops });
+}
+
+// ---- Operator/admin actions (wallet-auth: challenge → sign → POST) ----
+
+/** Rebuild the private liabilities book from on-chain custody. Admin-only —
+ *  `address` must be the backend's configured operator/admin. */
+export async function reconcileBook(address: string): Promise<ReconcileResult> {
+  return authPost<ReconcileResult>("/reconcile", address);
+}
+
+/** Derive credit records from the on-chain loan-book and re-anchor the passport
+ *  Merkle root. Admin-only. */
+export async function reconcilePassport(address: string): Promise<PassportReconcileResult> {
+  return authPost<PassportReconcileResult>("/passport/reconcile", address);
+}
+
+/** Manually record an issuer credit record for a borrower (optional; the
+ *  loan-book path via `reconcilePassport` is preferred). `address` authenticates
+ *  as the operator/admin; `borrower` is the subject the record is keyed to. */
+export async function enrollBorrower(
+  address: string,
+  borrower: string,
+  repaid: number,
+  defaults: number,
+): Promise<PassportReconcileResult> {
+  return authPost<PassportReconcileResult>("/passport/enroll", address, {
+    subject: borrower,
+    repaid,
+    defaults,
+  });
+}
+
+/** Nudge the CI prover for a workflow. No auth; the server debounces so a recent
+ *  run returns `{triggered:false, reason:"debounced"}`. */
+export async function proveTrigger(workflow: ProveWorkflow): Promise<ProveTriggerResult> {
+  return postJson<ProveTriggerResult>("/prove-trigger", { workflow });
 }

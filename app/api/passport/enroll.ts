@@ -15,13 +15,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
     const b = body(req);
     await requireOperator(req, b); // CI prover token OR operator-console wallet auth
-    const address = String(b.address ?? "");
-    if (!isValidAddress(address)) return json(res, 400, { error: "valid G... address required" });
+    // NB: `address` is the operator's auth field; the borrower is a separate field.
+    const borrower = String(b.borrower ?? b.subject ?? "");
+    if (!isValidAddress(borrower)) return json(res, 400, { error: "valid borrower G... address required" });
     const repaid = Math.max(0, Math.floor(Number(b.repaid ?? 0)));
     const defaults = Math.max(0, Math.floor(Number(b.defaults ?? 0)));
     const store = getStore();
-    const subject = subjectOf(address);
-    await store.ensureBorrower(subject, address);
+    const subject = subjectOf(borrower);
+    await store.ensureBorrower(subject, borrower);
     await store.setBorrower(subject, repaid, defaults);
     const { root, count } = await creditRootHex(store);
     return json(res, 200, { subject, repaid, defaults, root, count });
