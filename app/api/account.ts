@@ -4,9 +4,9 @@
 //   (subject, balance, salt) so they can verify inclusion locally.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { body, cors, handleError, json, requireWalletAuth, subjectOf } from "./_lib/http.ts";
-import { getStore } from "./_lib/store.ts";
-import { latestLedger, netCustodyByAddress } from "./_lib/chain.ts";
+import { body, cors, handleError, json, requireWalletAuth, subjectOf } from "./_lib/http.js";
+import { getStore } from "./_lib/store.js";
+import { latestLedger, netCustodyByAddress } from "./_lib/chain.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;

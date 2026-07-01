@@ -4,8 +4,8 @@
 // tree it proves inclusion against. Gated by PROVER_TOKEN; never sent to browsers.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { cors, handleError, json, requireProverToken } from "../_lib/http.ts";
-import { loadBorrowerRecords } from "../_lib/credit.ts";
+import { cors, handleError, json, requireProverToken } from "../_lib/http.js";
+import { loadBorrowerRecords } from "../_lib/credit.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;

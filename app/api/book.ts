@@ -4,9 +4,9 @@
 // the solvency proof commits to.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { cors, handleError, json } from "./_lib/http.ts";
-import { bookSummary } from "./_lib/book.ts";
-import { VAULT_ID, readView } from "./_lib/chain.ts";
+import { cors, handleError, json } from "./_lib/http.js";
+import { bookSummary } from "./_lib/book.js";
+import { VAULT_ID, readView } from "./_lib/chain.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;

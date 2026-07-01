@@ -4,7 +4,7 @@
 // account/withdraw/inclusion for ~5 minutes, one-time use.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { cors, handleError, isValidAddress, issueChallenge, json } from "./_lib/http.ts";
+import { cors, handleError, isValidAddress, issueChallenge, json } from "./_lib/http.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;

@@ -4,8 +4,8 @@
 // the backend publishes is identical to the one the prover proves and the vault
 // records. Leaf order is fixed (subjects sorted ascending) so every party agrees.
 
-import { buildSumTree, proveInclusion, hexToBytes, hex, type Leaf } from "../../src/lib/sumtree.ts";
-import { getStore, type Store } from "./store.ts";
+import { buildSumTree, proveInclusion, hexToBytes, hex, type Leaf } from "./sumtree.js";
+import { getStore, type Store } from "./store.js";
 
 export type BookLeaf = { account: string; balance: string; salt: string }; // hex/stroops
 

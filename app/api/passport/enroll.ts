@@ -5,9 +5,9 @@
 // root so the caller can roll the registry anchor.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { body, cors, handleError, json, requireOperator, subjectOf, isValidAddress } from "../_lib/http.ts";
-import { getStore } from "../_lib/store.ts";
-import { creditRootHex } from "../_lib/credit.ts";
+import { body, cors, handleError, json, requireOperator, subjectOf, isValidAddress } from "../_lib/http.js";
+import { getStore } from "../_lib/store.js";
+import { creditRootHex } from "../_lib/credit.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;

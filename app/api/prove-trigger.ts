@@ -6,8 +6,8 @@
 // (a token with actions:write) and `GITHUB_REPO` (owner/repo).
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { body, cors, handleError, json } from "./_lib/http.ts";
-import { getStore } from "./_lib/store.ts";
+import { body, cors, handleError, json } from "./_lib/http.js";
+import { getStore } from "./_lib/store.js";
 
 const WORKFLOWS: Record<string, string> = {
   solvency: "prove-and-post.yml",

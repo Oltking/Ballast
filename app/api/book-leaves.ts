@@ -6,8 +6,8 @@
 // browsers. The CI prover holds the token as a repo secret.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { cors, handleError, json, requireProverToken } from "./_lib/http.ts";
-import { loadBookLeaves } from "./_lib/book.ts";
+import { cors, handleError, json, requireProverToken } from "./_lib/http.js";
+import { loadBookLeaves } from "./_lib/book.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;

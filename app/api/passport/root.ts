@@ -2,8 +2,8 @@
 // registry predicate ANCHOR) + borrower count. Public: it's just the root.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { cors, handleError, json } from "../_lib/http.ts";
-import { creditRootHex } from "../_lib/credit.ts";
+import { cors, handleError, json } from "../_lib/http.js";
+import { creditRootHex } from "../_lib/credit.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;

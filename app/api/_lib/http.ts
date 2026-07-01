@@ -18,8 +18,8 @@ import {
   Transaction,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
-import { getStore } from "./store.ts";
-import { NETWORK_PASSPHRASE, hasOperatorKey, operatorAddress } from "./chain.ts";
+import { getStore } from "./store.js";
+import { NETWORK_PASSPHRASE, hasOperatorKey, operatorAddress } from "./chain.js";
 
 export function json(res: VercelResponse, status: number, body: unknown): void {
   res.status(status).setHeader("content-type", "application/json");

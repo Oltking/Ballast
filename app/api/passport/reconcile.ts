@@ -7,10 +7,10 @@
 // the caller can roll the registry anchor.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { body, cors, handleError, json, requireOperator, subjectOf } from "../_lib/http.ts";
-import { getStore } from "../_lib/store.ts";
-import { getLoanbookBorrowers, loanbookStats } from "../_lib/chain.ts";
-import { creditRootHex } from "../_lib/credit.ts";
+import { body, cors, handleError, json, requireOperator, subjectOf } from "../_lib/http.js";
+import { getStore } from "../_lib/store.js";
+import { getLoanbookBorrowers, loanbookStats } from "../_lib/chain.js";
+import { creditRootHex } from "../_lib/credit.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;

@@ -7,7 +7,7 @@
 // Records are ordered by subject ascending (canonical) so the issuer, the prover
 // and the registry anchor all agree on the root.
 
-import { getStore, type BorrowerRecord, type Store } from "./store.ts";
+import { getStore, type BorrowerRecord, type Store } from "./store.js";
 
 const EMPTY = new Uint8Array(32);
 

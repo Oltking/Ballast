@@ -5,8 +5,8 @@
 // revealed (auth-gated), never anyone else's.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { body, cors, handleError, json, requireWalletAuth, subjectOf } from "./_lib/http.ts";
-import { inclusionForSubject } from "./_lib/book.ts";
+import { body, cors, handleError, json, requireWalletAuth, subjectOf } from "./_lib/http.js";
+import { inclusionForSubject } from "./_lib/book.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;

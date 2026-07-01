@@ -3,8 +3,8 @@
 // whole point — they only ever surface as a ZK verdict via the registry).
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { cors, handleError, json } from "../_lib/http.ts";
-import { getStore } from "../_lib/store.ts";
+import { cors, handleError, json } from "../_lib/http.js";
+import { getStore } from "../_lib/store.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;

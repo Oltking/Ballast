@@ -7,10 +7,10 @@
 // account. Idempotent: it's a pure function of chain state.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { body, cors, handleError, json, requireOperator, subjectOf } from "./_lib/http.ts";
-import { getStore } from "./_lib/store.ts";
-import { latestLedger, netCustodyByAddress } from "./_lib/chain.ts";
-import { bookSummary } from "./_lib/book.ts";
+import { body, cors, handleError, json, requireOperator, subjectOf } from "./_lib/http.js";
+import { getStore } from "./_lib/store.js";
+import { latestLedger, netCustodyByAddress } from "./_lib/chain.js";
+import { bookSummary } from "./_lib/book.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;
