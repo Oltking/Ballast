@@ -1,86 +1,27 @@
-import { useEffect, useState } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import Layout from "./Layout.tsx";
+import Landing from "./pages/Landing.tsx";
+import CustomerHub from "./pages/CustomerHub.tsx";
 import PublicVerifier from "./pages/PublicVerifier.tsx";
-import CustomerDashboard from "./pages/CustomerDashboard.tsx";
 import IssuerDashboard from "./pages/IssuerDashboard.tsx";
-import CreditPassport from "./pages/CreditPassport.tsx";
 
-type Tab = "verify" | "account" | "passport" | "issuer";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "verify", label: "Is my money safe?" },
-  { id: "account", label: "My account" },
-  { id: "passport", label: "Credit Passport" },
-  { id: "issuer", label: "For operators" },
-];
-
-const isTab = (s: string): s is Tab =>
-  s === "verify" || s === "account" || s === "passport" || s === "issuer";
-const tabFromHash = (): Tab => {
-  const h = window.location.hash.replace(/^#/, "");
-  return isTab(h) ? h : "verify";
-};
-
+// Ballast — "the bank that proves it". Unified neobank:
+//   /          landing (public)
+//   /app       customer hub (account · passport · loans · activity)
+//   /verify    public proof-of-reserves verifier (anyone)
+//   /operator  operator console
 export default function App() {
-  const [tab, setTab] = useState<Tab>(tabFromHash);
-
-  // Deep-linkable surfaces: keep the URL hash and the active tab in sync, and
-  // respond to back/forward navigation.
-  useEffect(() => {
-    const onHash = () => setTab(tabFromHash());
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
-  const selectTab = (t: Tab) => {
-    setTab(t);
-    if (tabFromHash() !== t) window.location.hash = t;
-  };
-
   return (
-    <div className="app">
-      <header className="top">
-        <div className="brand">
-          <h1>
-            <span className="mark">⚓</span>
-            Ballast
-          </h1>
-          <span className="tag">proof your money is backed</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <span className="netchip">
-            <span className="live" />
-            Live · Stellar testnet
-          </span>
-          <nav className="tabs" aria-label="Sections">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                className={tab === t.id ? "active" : ""}
-                aria-current={tab === t.id ? "page" : undefined}
-                onClick={() => selectTab(t.id)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </header>
-
-      {tab === "verify" && <PublicVerifier />}
-      {tab === "account" && <CustomerDashboard />}
-      {tab === "passport" && <CreditPassport />}
-      {tab === "issuer" && <IssuerDashboard />}
-
-      <footer className="foot">
-        <span>
-          Ballast independently checks that a custodian's reserves cover every customer — using a
-          zero-knowledge proof, so the private ledger stays private. Research prototype · testnet only.
-        </span>
-        <span>
-          <a href="https://stellar.org" target="_blank" rel="noreferrer">
-            Built on Stellar
-          </a>
-        </span>
-      </footer>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Landing />} />
+          <Route path="/app" element={<CustomerHub />} />
+          <Route path="/verify" element={<PublicVerifier />} />
+          <Route path="/operator" element={<IssuerDashboard />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }

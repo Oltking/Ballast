@@ -504,3 +504,12 @@ footer.foot a { color: var(--muted); }
   .trust-cta .btn { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ---- routed nav (NavLink renders <a>; mirror .tabs button) ---- */
+nav.tabs a {
+  background: transparent; border: none; color: var(--muted); padding: 9px 16px; border-radius: 10px;
+  cursor: pointer; font-size: 14px; font-family: var(--sans); font-weight: 600; transition: all 0.15s ease; text-decoration: none;
+}
+nav.tabs a:hover { color: var(--ink); background: var(--surface-2); }
+nav.tabs a.active { background: var(--ink); color: #fff; }
+a.brand { text-decoration: none; color: inherit; }
