@@ -158,14 +158,25 @@ export async function getVaultFlows(): Promise<VaultFlow[]> {
 
 /** Net on-chain custody per address = Σ deposits − Σ user-withdrawals (≥ 0). */
 export async function netCustodyByAddress(): Promise<Map<string, bigint>> {
-  const flows = await getVaultFlows();
   const net = new Map<string, bigint>();
-  for (const f of flows) {
-    const cur = net.get(f.address) ?? 0n;
-    net.set(f.address, cur + (f.kind === "deposit" ? f.amount : -f.amount));
+  for (const [addr, f] of await flowsByAddress()) {
+    const v = f.deposits - f.withdrawals;
+    net.set(addr, v < 0n ? 0n : v);
   }
-  for (const [k, v] of net) if (v < 0n) net.set(k, 0n);
   return net;
+}
+
+/** Deposits and user-withdrawals per address, split, from the (retained) events. */
+export async function flowsByAddress(): Promise<Map<string, { deposits: bigint; withdrawals: bigint }>> {
+  const flows = await getVaultFlows();
+  const m = new Map<string, { deposits: bigint; withdrawals: bigint }>();
+  for (const f of flows) {
+    const e = m.get(f.address) ?? { deposits: 0n, withdrawals: 0n };
+    if (f.kind === "deposit") e.deposits += f.amount;
+    else e.withdrawals += f.amount;
+    m.set(f.address, e);
+  }
+  return m;
 }
 
 export async function latestLedger(): Promise<number> {

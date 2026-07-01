@@ -41,6 +41,10 @@ export interface Store {
   takeChallenge(address: string): Promise<string | null>;
   // debounce: acquire `key` for `ttlSeconds`; true only if not already held.
   acquireOnce(key: string, ttlSeconds: number): Promise<boolean>;
+  // authoritative cumulative withdrawals per user (ahead of the event index),
+  // so reconcile can never re-credit a balance a withdrawal already spent.
+  addWithdrawn(subject: string, amount: bigint): Promise<void>;
+  getWithdrawn(subject: string): Promise<bigint>;
 }
 
 function randHex(bytes = 32): string {
@@ -125,6 +129,13 @@ class RedisStore implements Store {
     const ok = await this.r.set(`lock:${key}`, "1", { nx: true, ex: ttl });
     return ok === "OK";
   }
+  async addWithdrawn(subject: string, amount: bigint): Promise<void> {
+    await this.r.hincrby(`user:${subject}`, "withdrawn", Number(amount));
+  }
+  async getWithdrawn(subject: string): Promise<bigint> {
+    const v = await this.r.hget<number | string>(`user:${subject}`, "withdrawn");
+    return BigInt(v ?? 0);
+  }
 }
 
 // ---- in-memory dev fallback (per-process; not durable) ----
@@ -189,6 +200,13 @@ class MemoryStore implements Store {
     if (exp && exp > now) return false;
     this.locks.set(key, now + ttl * 1000);
     return true;
+  }
+  private withdrawn = new Map<string, bigint>();
+  async addWithdrawn(subject: string, amount: bigint) {
+    this.withdrawn.set(subject, (this.withdrawn.get(subject) ?? 0n) + amount);
+  }
+  async getWithdrawn(subject: string) {
+    return this.withdrawn.get(subject) ?? 0n;
   }
 }
 

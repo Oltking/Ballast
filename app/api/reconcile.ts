@@ -9,7 +9,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { body, cors, handleError, json, requireOperator, subjectOf } from "./_lib/http.js";
 import { getStore } from "./_lib/store.js";
-import { VAULT_ID, latestLedger, netCustodyByAddress, readView } from "./_lib/chain.js";
+import { VAULT_ID, flowsByAddress, latestLedger, readView } from "./_lib/chain.js";
 import { bookSummary } from "./_lib/book.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -19,14 +19,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await requireOperator(req, body(req)); // CI prover token OR operator-console wallet auth
     const store = getStore();
     const ledger = await latestLedger();
-    const net = await netCustodyByAddress();
+    const flows = await flowsByAddress();
     let updated = 0;
     let attributed = 0n;
-    for (const [address, amount] of net) {
+    for (const [address, f] of flows) {
       const subject = subjectOf(address);
       await store.ensureUser(subject, address, ledger);
-      await store.setBalance(subject, amount.toString());
-      attributed += amount;
+      // Use the LARGER of on-chain withdrawal events and the operator's recorded
+      // withdrawals, so a withdrawal that hasn't been indexed yet still counts —
+      // reconcile can never re-credit a balance that was already spent.
+      const recorded = await store.getWithdrawn(subject);
+      const spent = f.withdrawals > recorded ? f.withdrawals : recorded;
+      let bal = f.deposits - spent;
+      if (bal < 0n) bal = 0n;
+      await store.setBalance(subject, bal.toString());
+      attributed += bal;
       updated++;
     }
     // The on-chain custodied floor is authoritative. Any custody we couldn't

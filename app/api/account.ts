@@ -6,7 +6,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { body, cors, handleError, json, requireWalletAuth, subjectOf } from "./_lib/http.js";
 import { getStore } from "./_lib/store.js";
-import { latestLedger, netCustodyByAddress } from "./_lib/chain.js";
+import { flowsByAddress, latestLedger } from "./_lib/chain.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;
@@ -28,8 +28,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const subject = subjectOf(address);
       const ledger = await latestLedger();
       const user = await store.ensureUser(subject, address, ledger);
-      // Reconcile this user's authoritative liability to their net on-chain custody.
-      const net = (await netCustodyByAddress()).get(address) ?? 0n;
+      // Reconcile this user's authoritative liability: deposits minus the LARGER
+      // of on-chain withdrawal events and the operator's recorded withdrawals, so
+      // an unindexed withdrawal can't be re-credited here either.
+      const f = (await flowsByAddress()).get(address) ?? { deposits: 0n, withdrawals: 0n };
+      const recorded = await store.getWithdrawn(subject);
+      const spent = f.withdrawals > recorded ? f.withdrawals : recorded;
+      let net = f.deposits - spent;
+      if (net < 0n) net = 0n;
       await store.setBalance(subject, net.toString());
       return json(res, 200, {
         subject,

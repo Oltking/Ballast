@@ -29,6 +29,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (amount <= 0n) return json(res, 400, { error: "amount must be positive" });
 
     const store = getStore();
+    // Serialize withdrawals per user so two concurrent requests can't both clear
+    // the balance check before either debits.
+    if (!(await store.acquireOnce(`wd:${subject}`, 20))) {
+      return json(res, 429, { error: "a withdrawal is already in progress — try again in a moment" });
+    }
     const user = await store.getUser(subject);
     const balance = BigInt(user?.balance ?? "0");
     if (amount > balance) {
@@ -38,7 +43,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Operator fulfils the redemption on-chain.
     const txHash = await invokeAsOperator(VAULT_ID, "withdraw_user", [addr(address), i128(amount)]);
 
-    // Optimistically debit; the next reconcile re-derives from chain truth.
+    // Record the withdrawal authoritatively (ahead of the event index) and debit,
+    // so reconcile's max(events, recorded) rule never re-credits the spent amount.
+    await store.addWithdrawn(subject, amount);
     await store.setBalance(subject, (balance - amount).toString());
 
     return json(res, 200, {
