@@ -1,0 +1,48 @@
+name: Prove & post lending-pool solvency
+
+# Proves the lending pool is solvent (assets = cash + outstanding ≥ Σ lender
+# claims) with a real Groth16 proof over the private lender book, and posts it to
+# the pool contract. Same guest as the custody vault — only the binding differs
+# (reserves := assets). Needs the SOURCE_ACCOUNT_SECRET repo secret.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 */12 * * *"
+
+jobs:
+  prove-pool:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Host check
+        run: uname -m && docker version && free -h
+      - name: Install RISC Zero toolchain (3.0.5)
+        run: |
+          curl -L https://risczero.com/install | bash
+          echo "$HOME/.risc0/bin" >> "$GITHUB_PATH"
+          "$HOME/.risc0/bin/rzup" install rust
+          "$HOME/.risc0/bin/rzup" install r0vm 3.0.5
+          "$HOME/.risc0/bin/rzup" install cpp || true
+      - name: System deps for the Stellar CLI
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev libudev-dev pkg-config
+      - name: Install Stellar CLI
+        run: cargo install --locked stellar-cli
+      - name: Prove & post pool solvency
+        env:
+          POOL_CONTRACT_ID: CBHRVLIQVELF35DSPR2EY6MIJ72WW35IDHN52HXEHSMKRBG25R7FAPVA
+          POOL_DOMAIN: 4f1aad10a9165df4727c744c79884ff56b6fa819dbdd1ee43c98a884daec7e50
+          SOURCE_ACCOUNT_SECRET: ${{ secrets.SOURCE_ACCOUNT_SECRET }}
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+          PROVER_TOKEN: ${{ secrets.PROVER_TOKEN }}
+          RISC0_DEV_MODE: "0"
+          REPIN: "1"
+        run: bash scripts/prove_pool.sh
+      - name: Upload proof artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proof_pool
+          path: proof_pool.txt
+          if-no-files-found: ignore
