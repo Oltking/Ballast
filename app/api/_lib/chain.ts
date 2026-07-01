@@ -27,6 +27,8 @@ export const REGISTRY_ID =
   process.env.REGISTRY_ID || "CDJ7GMWC2253BCPQVH2N37RKVXTLBKH7QGIAKF54DQEYJI4Q6X7M4I2D";
 export const LOANBOOK_ID =
   process.env.LOANBOOK_ID || "CBIUJ4CFSUIZNZWRUPDD5E3TL2G5VYQO6KF26J6DKS2MBU3LBIS4KRTB";
+export const USDC_SAC =
+  process.env.USDC_SAC || "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
 
 export const server = new rpc.Server(RPC_URL, { allowHttp: false });
 
@@ -181,6 +183,15 @@ export async function flowsByAddress(): Promise<Map<string, { deposits: bigint; 
 
 export async function latestLedger(): Promise<number> {
   return (await server.getLatestLedger()).sequence;
+}
+
+/** An account's balance of the reserve token (USDC SAC), stroops. */
+export async function tokenBalance(address: string): Promise<bigint> {
+  try {
+    return BigInt(String(await readView(USDC_SAC, "balance", [addr(address)])));
+  } catch {
+    return 0n;
+  }
 }
 
 // ---- loan-book (on-chain credit history source) ----
