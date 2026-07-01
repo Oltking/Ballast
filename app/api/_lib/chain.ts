@@ -87,12 +87,17 @@ export async function invokeAsOperator(
 }
 
 /** Read-only view via simulation (no signer). */
+// A real, funded testnet account to source read-only simulations from (an
+// all-zero account can make simulateTransaction reject before it runs the view).
+const SIM_SOURCE =
+  process.env.SIM_SOURCE || "GCPBZLNW2F2X3KQEILWRJRFBNSHFKWNY6GFSBCB4I624D2KVRY6P2JLQ";
+
 export async function readView(
   contractId: string,
   method: string,
   args: xdr.ScVal[] = [],
 ): Promise<unknown> {
-  const a = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
+  const a = new Account(SIM_SOURCE, "0");
   const tx = new TransactionBuilder(a, { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE })
     .addOperation(new Contract(contractId).call(method, ...args))
     .setTimeout(30)
