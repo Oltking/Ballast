@@ -19,6 +19,10 @@ export const REGISTRY_ID =
   "CDJ7GMWC2253BCPQVH2N37RKVXTLBKH7QGIAKF54DQEYJI4Q6X7M4I2D";
 export const REGISTRY_DOMAIN =
   "d3f332c2d6bbb089f0a9f4ddfe2aade6b0a8ff81900517bc1c0984a390f5fece";
+// On-chain loan ledger — the credit-history source the passport issuer derives
+// borrower (repaid, defaults) records from.
+export const LOANBOOK_ID =
+  "CBIUJ4CFSUIZNZWRUPDD5E3TL2G5VYQO6KF26J6DKS2MBU3LBIS4KRTB";
 export const USDC_SAC =
   "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
 // The classic asset the SAC wraps (Circle testnet USDC, home_domain centre.io).

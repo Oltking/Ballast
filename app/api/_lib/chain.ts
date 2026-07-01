@@ -26,6 +26,8 @@ export const VAULT_ID =
   process.env.VAULT_CONTRACT_ID || "CAULRHZ5WKYXHQJTF3BC3AV4QHOIEPDN5LIGDBWS6UOJ76YLLPT3VONR";
 export const REGISTRY_ID =
   process.env.REGISTRY_ID || "CDJ7GMWC2253BCPQVH2N37RKVXTLBKH7QGIAKF54DQEYJI4Q6X7M4I2D";
+export const LOANBOOK_ID =
+  process.env.LOANBOOK_ID || "CBIUJ4CFSUIZNZWRUPDD5E3TL2G5VYQO6KF26J6DKS2MBU3LBIS4KRTB";
 
 export const server = new rpc.Server(RPC_URL, { allowHttp: false });
 
@@ -164,4 +166,43 @@ export async function netCustodyByAddress(): Promise<Map<string, bigint>> {
 
 export async function latestLedger(): Promise<number> {
   return (await server.getLatestLedger()).sequence;
+}
+
+// ---- loan-book (on-chain credit history source) ----
+
+/** Discover every borrower the loan-book has touched, from its event topics. */
+export async function getLoanbookBorrowers(): Promise<Set<string>> {
+  const latest = (await server.getLatestLedger()).sequence;
+  const out = new Set<string>();
+  for (const back of [120_000, 60_000, 17_000, 7_000]) {
+    const startLedger = Math.max(latest - back, 1);
+    try {
+      const res = await server.getEvents({
+        startLedger,
+        filters: [{ type: "contract", contractIds: [LOANBOOK_ID] }],
+        limit: 1000,
+      });
+      for (const ev of res.events) {
+        try {
+          out.add(String(scValToNative(ev.topic[1])));
+        } catch {
+          /* skip */
+        }
+      }
+    } catch {
+      /* window too old / transient */
+    }
+  }
+  return out;
+}
+
+export type LoanStats = { repaid: number; defaults: number };
+
+/** Authoritative per-borrower credit stats from the loan-book contract. */
+export async function loanbookStats(address: string): Promise<LoanStats> {
+  const s = (await readView(LOANBOOK_ID, "stats", [addr(address)])) as Record<string, unknown> | null;
+  return {
+    repaid: Number(s?.repaid_count ?? 0),
+    defaults: Number(s?.default_count ?? 0),
+  };
 }
