@@ -245,3 +245,51 @@ export async function enrollBorrower(
 export async function proveTrigger(workflow: ProveWorkflow): Promise<ProveTriggerResult> {
   return postJson<ProveTriggerResult>("/prove-trigger", { workflow });
 }
+
+// ---- Lending (loan-book) ----
+
+/** A borrower's public credit standing, read from the on-chain loan-book. This
+ *  is the history the ZK Credit Passport proves over. Amounts are in stroops. */
+export interface LoanStats {
+  borrower: string;
+  outstanding: string;
+  repaid: number;
+  defaults: number;
+  disbursed: number;
+}
+
+/** Result of recording a loan on-chain. `paid` is false when the operator
+ *  lending pool isn't funded — the loan is still recorded (building credit) and
+ *  `note` explains the pending cash payout. */
+export interface BorrowResult {
+  borrower: string;
+  amount: string;
+  loanTx: string;
+  paid: boolean;
+  payTx: string | null;
+  note?: string;
+}
+
+/** Result of recording a repayment on-chain. */
+export interface RepayResult {
+  borrower: string;
+  amount: string;
+  tx: string;
+}
+
+/** Public per-borrower credit standing from the loan-book (no auth). */
+export async function getLoanStats(borrower: string): Promise<LoanStats> {
+  return getJson<LoanStats>(`/loan?action=stats&borrower=${encodeURIComponent(borrower)}`);
+}
+
+/** Record a loan on-chain and disburse from the operator lending pool if funded.
+ *  Wallet-authed; `amountStroops` is a string. Per-loan cap is 100 USDC. */
+export async function borrow(address: string, amountStroops: string): Promise<BorrowResult> {
+  return authPost<BorrowResult>("/loan?action=borrow", address, { amount: amountStroops });
+}
+
+/** Record a repayment on-chain (builds good standing). Wallet-authed. The USDC
+ *  transfer to the operator must be done separately before calling this. */
+export async function repay(address: string, amountStroops: string): Promise<RepayResult> {
+  return authPost<RepayResult>("/loan?action=repay", address, { amount: amountStroops });
+}

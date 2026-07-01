@@ -1,10 +1,11 @@
 // Ballast customer hub (/app) — the neobank dashboard. Co-equal sections:
 // Account (deposit/withdraw/backed/counted), Credit Passport, and Loans, plus
 // Activity within Account. Section nav keeps it one cohesive place.
-// (Loans is a starter placeholder — the real borrow/repay UI wires to /api/loan.)
+// (Loans wires the real borrow/repay UI to /api/loan and the loan-book.)
 import { useState } from "react";
 import CustomerDashboard from "./CustomerDashboard.tsx";
 import CreditPassport from "./CreditPassport.tsx";
+import Loans from "./Loans.tsx";
 
 type Section = "account" | "passport" | "loans";
 
@@ -35,15 +36,7 @@ export default function CustomerHub() {
 
       {section === "account" && <CustomerDashboard />}
       {section === "passport" && <CreditPassport />}
-      {section === "loans" && (
-        <section className="panel" style={{ maxWidth: 640, margin: "20px auto", textAlign: "center" }}>
-          <h3>Loans</h3>
-          <p style={{ color: "var(--muted)" }}>
-            Borrow, repay, and build your on-chain credit standing — which powers your Credit
-            Passport. Coming to your dashboard.
-          </p>
-        </section>
-      )}
+      {section === "loans" && <Loans />}
     </main>
   );
 }
