@@ -45,6 +45,13 @@ export interface Store {
   // so reconcile can never re-credit a balance a withdrawal already spent.
   addWithdrawn(subject: string, amount: bigint): Promise<void>;
   getWithdrawn(subject: string): Promise<bigint>;
+  // ---- lending pool: a SECOND private book (lender positions) ----
+  ensureLender(subject: string, address: string, ledger: number): Promise<UserRecord>;
+  getLender(subject: string): Promise<UserRecord | null>;
+  setLenderBalance(subject: string, stroops: string): Promise<void>;
+  allLenderSubjects(): Promise<string[]>;
+  addLenderWithdrawn(subject: string, amount: bigint): Promise<void>;
+  getLenderWithdrawn(subject: string): Promise<bigint>;
 }
 
 function randHex(bytes = 32): string {
@@ -136,6 +143,39 @@ class RedisStore implements Store {
     const v = await this.r.hget<number | string>(`user:${subject}`, "withdrawn");
     return BigInt(v ?? 0);
   }
+  // lender book (pool) — same structure, `lender:` keys.
+  async ensureLender(subject: string, address: string, ledger: number): Promise<UserRecord> {
+    const existing = await this.getLender(subject);
+    if (existing) return existing;
+    const rec: UserRecord = { subject, address, balance: "0", salt: randHex(), createdLedger: ledger };
+    await this.r.hset(`lender:${subject}`, rec as unknown as Record<string, unknown>);
+    await this.r.sadd("lenders", subject);
+    return rec;
+  }
+  async getLender(subject: string): Promise<UserRecord | null> {
+    const h = await this.r.hgetall<Record<string, string>>(`lender:${subject}`);
+    if (!h || !h.subject) return null;
+    return {
+      subject: h.subject,
+      address: h.address,
+      balance: String(h.balance ?? "0"),
+      salt: h.salt,
+      createdLedger: Number(h.createdLedger ?? 0),
+    };
+  }
+  async setLenderBalance(subject: string, stroops: string): Promise<void> {
+    await this.r.hset(`lender:${subject}`, { balance: stroops });
+  }
+  async allLenderSubjects(): Promise<string[]> {
+    return (await this.r.smembers("lenders")) ?? [];
+  }
+  async addLenderWithdrawn(subject: string, amount: bigint): Promise<void> {
+    await this.r.hincrby(`lender:${subject}`, "withdrawn", Number(amount));
+  }
+  async getLenderWithdrawn(subject: string): Promise<bigint> {
+    const v = await this.r.hget<number | string>(`lender:${subject}`, "withdrawn");
+    return BigInt(v ?? 0);
+  }
 }
 
 // ---- in-memory dev fallback (per-process; not durable) ----
@@ -207,6 +247,32 @@ class MemoryStore implements Store {
   }
   async getWithdrawn(subject: string) {
     return this.withdrawn.get(subject) ?? 0n;
+  }
+  private lenders = new Map<string, UserRecord>();
+  private lenderWithdrawn = new Map<string, bigint>();
+  async ensureLender(subject: string, address: string, ledger: number) {
+    let l = this.lenders.get(subject);
+    if (!l) {
+      l = { subject, address, balance: "0", salt: randHex(), createdLedger: ledger };
+      this.lenders.set(subject, l);
+    }
+    return l;
+  }
+  async getLender(subject: string) {
+    return this.lenders.get(subject) ?? null;
+  }
+  async setLenderBalance(subject: string, stroops: string) {
+    const l = this.lenders.get(subject);
+    if (l) l.balance = stroops;
+  }
+  async allLenderSubjects() {
+    return [...this.lenders.keys()];
+  }
+  async addLenderWithdrawn(subject: string, amount: bigint) {
+    this.lenderWithdrawn.set(subject, (this.lenderWithdrawn.get(subject) ?? 0n) + amount);
+  }
+  async getLenderWithdrawn(subject: string) {
+    return this.lenderWithdrawn.get(subject) ?? 0n;
   }
 }
 

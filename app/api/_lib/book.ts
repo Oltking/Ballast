@@ -51,3 +51,32 @@ export async function inclusionForSubject(subject: string, store: Store = getSto
   const { root } = await buildSumTree(leaves.map(toLeaf));
   return { proof, root: hex(root), index };
 }
+
+// ---- lending pool: the SAME machinery over the private LENDER book ----
+
+/** Every lender's leaf in canonical (sorted-by-subject) order. */
+export async function loadPoolLeaves(store: Store = getStore()): Promise<BookLeaf[]> {
+  const subjects = (await store.allLenderSubjects()).slice().sort();
+  const out: BookLeaf[] = [];
+  for (const s of subjects) {
+    const l = await store.getLender(s);
+    if (l) out.push({ account: l.subject, balance: l.balance, salt: l.salt });
+  }
+  return out;
+}
+
+export async function poolBookSummary(store: Store = getStore()): Promise<BookSummary> {
+  const leaves = await loadPoolLeaves(store);
+  const { root, total } = await buildSumTree(leaves.map(toLeaf));
+  return { root: hex(root), total: total.toString(), count: leaves.length };
+}
+
+/** A lender's inclusion proof against the current pool book root. */
+export async function poolInclusionForSubject(subject: string, store: Store = getStore()) {
+  const leaves = await loadPoolLeaves(store);
+  const index = leaves.findIndex((l) => l.account.toLowerCase() === subject.toLowerCase());
+  if (index < 0) return null;
+  const proof = await proveInclusion(leaves.map(toLeaf), index);
+  const { root } = await buildSumTree(leaves.map(toLeaf));
+  return { proof, root: hex(root), index };
+}

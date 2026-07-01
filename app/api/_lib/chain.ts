@@ -29,6 +29,8 @@ export const LOANBOOK_ID =
   process.env.LOANBOOK_ID || "CBIUJ4CFSUIZNZWRUPDD5E3TL2G5VYQO6KF26J6DKS2MBU3LBIS4KRTB";
 export const USDC_SAC =
   process.env.USDC_SAC || "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
+export const POOL_ID =
+  process.env.POOL_ID || "CBHRVLIQVELF35DSPR2EY6MIJ72WW35IDHN52HXEHSMKRBG25R7FAPVA";
 
 export const server = new rpc.Server(RPC_URL, { allowHttp: false });
 
@@ -183,6 +185,57 @@ export async function flowsByAddress(): Promise<Map<string, { deposits: bigint; 
 
 export async function latestLedger(): Promise<number> {
   return (await server.getLatestLedger()).sequence;
+}
+
+/** Lender deposits/withdrawals per address from the pool's events (deduped). */
+export async function poolFlowsByAddress(): Promise<Map<string, { deposits: bigint; withdrawals: bigint }>> {
+  const latest = (await server.getLatestLedger()).sequence;
+  const byId = new Map<string, { kind: "deposit" | "withdraw"; address: string; amount: bigint }>();
+  for (const back of [120_000, 60_000, 17_000, 7_000]) {
+    const startLedger = Math.max(latest - back, 1);
+    try {
+      const res = await server.getEvents({
+        startLedger,
+        filters: [{ type: "contract", contractIds: [POOL_ID] }],
+        limit: 1000,
+      });
+      for (const ev of res.events) {
+        let name = "";
+        try {
+          name = String(scValToNative(ev.topic[0])).toLowerCase();
+        } catch {
+          continue;
+        }
+        const kind = name.includes("lenderdeposit")
+          ? "deposit"
+          : name.includes("lenderwithdraw")
+            ? "withdraw"
+            : null;
+        if (!kind) continue;
+        let address = "";
+        try {
+          address = String(scValToNative(ev.topic[1]));
+        } catch {
+          continue;
+        }
+        const payload = scValToNative(ev.value) as Record<string, unknown> | unknown[];
+        const amount = Array.isArray(payload)
+          ? BigInt(String(payload[0] ?? 0))
+          : BigInt(String((payload as Record<string, unknown>).amount ?? 0));
+        byId.set(`${ev.txHash}-${ev.ledger}-${ev.id}`, { kind, address, amount });
+      }
+    } catch {
+      /* window too old / transient */
+    }
+  }
+  const m = new Map<string, { deposits: bigint; withdrawals: bigint }>();
+  for (const f of byId.values()) {
+    const e = m.get(f.address) ?? { deposits: 0n, withdrawals: 0n };
+    if (f.kind === "deposit") e.deposits += f.amount;
+    else e.withdrawals += f.amount;
+    m.set(f.address, e);
+  }
+  return m;
 }
 
 /** An account's balance of the reserve token (USDC SAC), stroops. */
