@@ -258,16 +258,17 @@ export interface LoanStats {
   disbursed: number;
 }
 
-/** Result of recording a loan on-chain. `paid` is false when the operator
- *  lending pool isn't funded — the loan is still recorded (building credit) and
- *  `note` explains the pending cash payout. */
+/** Result of recording a loan on-chain and drawing it from the ZK lending pool.
+ *  `hasPassport` reports whether a valid ZK Credit Passport unlocked the full cap
+ *  (vs. the starter line). `poolTx` is the pool `borrow` that moved lender cash to
+ *  the borrower; `source` is "pool". */
 export interface BorrowResult {
   borrower: string;
   amount: string;
   loanTx: string;
-  paid: boolean;
-  payTx: string | null;
-  note?: string;
+  poolTx: string;
+  hasPassport: boolean;
+  source: string;
 }
 
 /** Result of recording a repayment on-chain. */
@@ -282,14 +283,96 @@ export async function getLoanStats(borrower: string): Promise<LoanStats> {
   return getJson<LoanStats>(`/loan?action=stats&borrower=${encodeURIComponent(borrower)}`);
 }
 
-/** Record a loan on-chain and disburse from the operator lending pool if funded.
- *  Wallet-authed; `amountStroops` is a string. Per-loan cap is 100 USDC. */
+/** Record a loan on-chain and draw the cash from the ZK lending pool. Wallet-
+ *  authed; `amountStroops` is a string. Passport-gated: 100 USDC cap with a valid
+ *  Credit Passport, 10 USDC starter line without. May error `InsufficientLiquidity`
+ *  if the pool has no lenders yet; over-cap errors carry `{cap, hasPassport}`. */
 export async function borrow(address: string, amountStroops: string): Promise<BorrowResult> {
   return authPost<BorrowResult>("/loan?action=borrow", address, { amount: amountStroops });
 }
 
 /** Record a repayment on-chain (builds good standing). Wallet-authed. The USDC
- *  transfer to the operator must be done separately before calling this. */
+ *  transfer to the pool must be done separately before calling this. */
 export async function repay(address: string, amountStroops: string): Promise<RepayResult> {
   return authPost<RepayResult>("/loan?action=repay", address, { amount: amountStroops });
+}
+
+// ---- ZK lending pool (Earn) ----
+
+/** The pool's on-chain solvency credential, mirroring the vault's. Present once
+ *  the pool has published its first proof; `null` while attestation is pending. */
+export interface PoolCredential {
+  solvent: boolean;
+  ratio_bps: number;
+  epoch: number;
+  ledger: number;
+  margin: string; // stroops
+  fresh: boolean;
+  status: number | { tag?: string } | Record<string, unknown>;
+}
+
+/** The published lender book summary (Merkle root + total + leaf count). */
+export interface PoolBook {
+  root: string;
+  total: string; // stroops
+  count: number;
+}
+
+/** Live pool state: cash, outstanding loans, pooled lender claims, assets,
+ *  accrued surplus (yield), plus the on-chain solvency credential + lender book.
+ *  All amounts are stroop STRINGS. */
+export interface PoolState {
+  cash: string;
+  outstanding: string;
+  pooled: string;
+  assets: string;
+  surplus: string;
+  epoch: number;
+  fresh: boolean;
+  credential: PoolCredential | null;
+  book: PoolBook;
+}
+
+/** Your own lender leaf (auth-gated): supplied balance in stroops + secret salt. */
+export interface PoolPosition {
+  subject: string;
+  address: string;
+  balance: string; // stroops
+  salt: string; // 64-hex
+  counted: boolean;
+}
+
+/** Result of a lender redemption fulfilled by the operator on-chain. */
+export interface PoolRedeemResult {
+  txHash: string;
+  paidTo: string;
+  amount: string;
+  balance: string;
+}
+
+/** Live pool solvency + the published lender book (no auth). */
+export async function getPoolState(): Promise<PoolState> {
+  return getJson<PoolState>("/pool?action=state");
+}
+
+/** Your own lender leaf (auth-gated): supplied balance + secret salt. */
+export async function poolPosition(address: string): Promise<PoolPosition> {
+  return authPost<PoolPosition>("/pool?action=position", address);
+}
+
+/** Your Merkle inclusion proof against the published pool root, or null if you're
+ *  not in the pool book yet (404 `{counted:false}`). */
+export async function poolInclusion(address: string): Promise<InclusionResult | null> {
+  try {
+    return await authPost<InclusionResult>("/pool?action=inclusion", address);
+  } catch (e) {
+    if ((e as ApiError)?.status === 404) return null;
+    throw e;
+  }
+}
+
+/** Authorize a lender redemption; the operator fulfils `lender_withdraw(to=you,
+ *  amount)` on-chain. May throw `InsufficientLiquidity` if funds are lent out. */
+export async function poolRedeem(address: string, amountStroops: string): Promise<PoolRedeemResult> {
+  return authPost<PoolRedeemResult>("/pool?action=redeem", address, { amount: amountStroops });
 }

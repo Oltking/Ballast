@@ -6,13 +6,15 @@ import { useState } from "react";
 import CustomerDashboard from "./CustomerDashboard.tsx";
 import CreditPassport from "./CreditPassport.tsx";
 import Loans from "./Loans.tsx";
+import Earn from "./Earn.tsx";
 
-type Section = "account" | "passport" | "loans";
+type Section = "account" | "passport" | "loans" | "earn";
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: "account", label: "Account" },
   { id: "passport", label: "Credit Passport" },
   { id: "loans", label: "Loans" },
+  { id: "earn", label: "Earn" },
 ];
 
 export default function CustomerHub() {
@@ -36,7 +38,8 @@ export default function CustomerHub() {
 
       {section === "account" && <CustomerDashboard />}
       {section === "passport" && <CreditPassport />}
-      {section === "loans" && <Loans />}
+      {section === "loans" && <Loans onNeedPassport={() => setSection("passport")} />}
+      {section === "earn" && <Earn />}
     </main>
   );
 }
