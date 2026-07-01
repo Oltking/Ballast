@@ -13,20 +13,23 @@
 // pending — labelled honestly, never silently faked.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { body, cors, handleError, isValidAddress, json, requireWalletAuth } from "./_lib/http.js";
+import { body, cors, handleError, isValidAddress, json, requireWalletAuth, subjectOf } from "./_lib/http.js";
 import {
   LOANBOOK_ID,
-  USDC_SAC,
+  POOL_ID,
+  REGISTRY_ID,
   addr,
+  bytes,
   hasOperatorKey,
   i128,
   invokeAsOperator,
-  operatorAddress,
   readView,
-  tokenBalance,
+  u32,
 } from "./_lib/chain.js";
 
-const MAX_LOAN = BigInt(process.env.MAX_LOAN_STROOPS || "1000000000"); // 100 USDC
+const MAX_LOAN = BigInt(process.env.MAX_LOAN_STROOPS || "1000000000"); // 100 USDC (with passport)
+const STARTER_LOAN = BigInt(process.env.STARTER_LOAN_STROOPS || "100000000"); // 10 USDC (no passport)
+const PASSPORT_PREDICATE = 1;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cors(req, res)) return;
@@ -61,34 +64,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (amount <= 0n) return json(res, 400, { error: "amount must be positive" });
 
-    // --- borrow: record the loan on-chain, then disburse if the pool is funded ---
+    // --- borrow: passport-gated limit, drawn from the ZK lending pool ---
     if (action === "borrow") {
-      if (amount > MAX_LOAN) {
-        return json(res, 400, { error: "over the per-loan cap", cap: MAX_LOAN.toString() });
+      // A valid ZK Credit Passport (good standing) unlocks the full cap; without
+      // one you get a smaller starter line — so you can build credit first.
+      let hasPassport = false;
+      try {
+        hasPassport =
+          (await readView(REGISTRY_ID, "is_valid", [
+            bytes(subjectOf(borrower)),
+            u32(PASSPORT_PREDICATE),
+            u32(0),
+          ])) === true;
+      } catch {
+        /* no passport / read failed → starter cap */
       }
+      const cap = hasPassport ? MAX_LOAN : STARTER_LOAN;
+      if (amount > cap) {
+        return json(res, 400, {
+          error: hasPassport
+            ? "over the per-loan cap"
+            : "over your starter limit — build a ZK Credit Passport to borrow more",
+          cap: cap.toString(),
+          hasPassport,
+        });
+      }
+      // Record credit history (feeds the passport) + draw from the POOL: this
+      // moves lenders' pooled cash to the borrower and raises the pool's
+      // `outstanding` (solvency preserved). Reverts InsufficientLiquidity if the
+      // pool has no free cash (it needs lenders first).
       const loanTx = await invokeAsOperator(LOANBOOK_ID, "disburse", [addr(borrower), i128(amount)]);
-      // Disburse from the operator lending pool, if funded (never from custody).
-      let payTx: string | null = null;
-      let paid = false;
-      const pool = await tokenBalance(operatorAddress());
-      if (pool >= amount) {
-        payTx = await invokeAsOperator(USDC_SAC, "transfer", [
-          addr(operatorAddress()),
-          addr(borrower),
-          i128(amount),
-        ]);
-        paid = true;
-      }
+      const poolTx = await invokeAsOperator(POOL_ID, "borrow", [addr(borrower), i128(amount)]);
       return json(res, 200, {
         action: "borrow",
         borrower,
         amount: amount.toString(),
         loanTx,
-        paid,
-        payTx,
-        note: paid
-          ? undefined
-          : "loan recorded on-chain (building your credit); cash payout pending a funded lending pool",
+        poolTx,
+        hasPassport,
+        source: "pool",
       });
     }
 
