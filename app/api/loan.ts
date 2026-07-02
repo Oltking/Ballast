@@ -89,12 +89,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           hasPassport,
         });
       }
-      // Record credit history (feeds the passport) + draw from the POOL: this
-      // moves lenders' pooled cash to the borrower and raises the pool's
-      // `outstanding` (solvency preserved). Reverts InsufficientLiquidity if the
-      // pool has no free cash (it needs lenders first).
-      const loanTx = await invokeAsOperator(LOANBOOK_ID, "disburse", [addr(borrower), i128(amount)]);
+      // Draw cash from the POOL FIRST — this moves lenders' pooled cash to the
+      // borrower and raises `outstanding` (solvency preserved), and REVERTS with
+      // InsufficientLiquidity if the pool has no free cash. Only after the cash
+      // actually moves do we record the loan-book credit history, so a failed
+      // borrow never leaves a phantom loan.
       const poolTx = await invokeAsOperator(POOL_ID, "borrow", [addr(borrower), i128(amount)]);
+      const loanTx = await invokeAsOperator(LOANBOOK_ID, "disburse", [addr(borrower), i128(amount)]);
       return json(res, 200, {
         action: "borrow",
         borrower,

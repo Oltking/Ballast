@@ -206,11 +206,14 @@ export async function poolFlowsByAddress(): Promise<Map<string, { deposits: bigi
         } catch {
           continue;
         }
-        const kind = name.includes("lenderdeposit")
-          ? "deposit"
-          : name.includes("lenderwithdraw")
-            ? "withdraw"
-            : null;
+        // Soroban emits event names in snake_case ("lender_deposit"), so match on
+        // word membership rather than a collapsed string.
+        const kind =
+          name.includes("lender") && name.includes("deposit")
+            ? "deposit"
+            : name.includes("lender") && name.includes("withdraw")
+              ? "withdraw"
+              : null;
         if (!kind) continue;
         let address = "";
         try {
